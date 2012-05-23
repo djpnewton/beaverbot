@@ -1,0 +1,14 @@
+*.exe
+*.o
+*.a
+*.so
+*.swp
+*~
+Debug/
+Release/
+LinuxDebug/
+msvc/ipch
+*.user
+*.sdf
+*.opensdf
+*.suo

@@ -1,3 +1,4 @@
+*~
 *.py[co]
 
 # Packages
@@ -25,3 +26,15 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+
+#gccavr
+*.o
+*.o.d
+*.lst
+*.hex
+*.elf
+*.lss
+*.map
+*.sym
+*.eep

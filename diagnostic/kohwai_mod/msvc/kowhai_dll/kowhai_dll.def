@@ -1,0 +1,26 @@
+LIBRARY KOWHAI_DLL
+EXPORTS
+	kowhai_get_node_type_size
+	kowhai_get_node
+	kowhai_get_node_size
+	kowhai_read
+	kowhai_write
+	kowhai_get_int8
+	kowhai_get_int16
+	kowhai_get_int32
+	kowhai_get_float
+	kowhai_set_char
+	kowhai_set_int16
+	kowhai_set_int32
+	kowhai_set_float
+	kowhai_protocol_get_tree_id
+	kowhai_protocol_parse
+	kowhai_protocol_create
+	kowhai_protocol_get_overhead
+	kowhai_server_process_packet
+	kowhai_serialize
+	kowhai_deserialize
+	kowhai_diff
+	kowhai_merge
+	kowhai_create_symbol_path
+	kowhai_create_symbol_path2
