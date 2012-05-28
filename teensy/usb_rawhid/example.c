@@ -59,7 +59,7 @@ struct kowhai_node_t teensy_descriptor[] =
     { KOW_BRANCH_START,     SYM_ADC,            1,                0 },
     { KOW_UINT8,            SYM_DIDR0,          1,                0 },
     { KOW_UINT8,            SYM_DIDR1,          1,                0 },
-    { KOW_UINT8,            SYM_ADC,            ADC_COUNT,        0 },
+    { KOW_UINT16,           SYM_ADC,            ADC_COUNT,        0 },
     { KOW_BRANCH_END,       SYM_ADC,            1,                0 },
     { KOW_BRANCH_START,     SYM_TIMER2,         1,                0 },
     { KOW_UINT8,            SYM_TCCR2A,         1,                0 },
@@ -85,7 +85,7 @@ struct adc_t
 {
     uint8_t _DIDR0;
     uint8_t _DIDR1;
-    uint8_t adc[ADC_COUNT];
+    uint16_t adc[ADC_COUNT];
 };
 
 struct timer2_t
@@ -220,7 +220,7 @@ int16_t adc_read(uint8_t mux)
 #endif
 #endif
     
-    static uint8_t aref = ADC_REF_INTERNAL;
+    static uint8_t aref = ADC_REF_POWER;
 
     uint8_t low;
 
