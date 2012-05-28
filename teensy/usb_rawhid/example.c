@@ -168,7 +168,7 @@ void step_program(void)
             DIDR0 = 255;
             DIDR1 = 0;
             // check adc value of floor sensor
-            if (teensy.adc.adc[7] > 800)
+            if (teensy.adc.adc[7] > 800 || teensy.adc.adc[6] > 800)
                 // init backward routine
                 saw_table_edge = 100000;
             if (saw_table_edge)
@@ -225,6 +225,9 @@ int main(void)
     size_t tree_descriptor_sizes[] = {sizeof(teensy_descriptor)};
     void* tree_data_buffers[] = {&teensy};
     struct kowhai_protocol_server_t server = {RAWHID_PACKET_SIZE, buffer, node_written, NULL, server_buffer_send, NULL, 1, tree_descriptors, tree_descriptor_sizes, tree_data_buffers};
+
+    // init teensy tree
+    teensy.program = PROGRAM_STAY_ON_TABLE;
 
     while (1) {
         // if received data, do something with it
