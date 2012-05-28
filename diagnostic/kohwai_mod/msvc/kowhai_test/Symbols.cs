@@ -18,6 +18,7 @@ namespace KowhaiSymbols
             "TCCR2B",
             "OCR2A",
             "OCR2B",
+            "Program",
         };
         public enum Constants
         {
@@ -35,6 +36,7 @@ namespace KowhaiSymbols
             TCCR2B,
             OCR2A,
             OCR2B,
+            Program,
         };
     }
 }

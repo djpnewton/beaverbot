@@ -67,6 +67,7 @@ struct kowhai_node_t teensy_descriptor[] =
     { KOW_UINT8,            SYM_OCR2A,          1,                0 },
     { KOW_UINT8,            SYM_OCR2B,          1,                0 },
     { KOW_BRANCH_END,       SYM_TIMER2,         1,                0 },
+    { KOW_UINT8,            SYM_PROGRAM,        1,                0 },
     { KOW_BRANCH_END,       SYM_TEENSY,         1,                0 },
 };
 
@@ -102,6 +103,7 @@ struct teensy_t
     struct gpio_t GPIO[PORT_COUNT];
     struct adc_t adc;
     struct timer2_t timer2;
+    uint8_t program;
 };
 
 struct teensy_t teensy = {0};
@@ -148,6 +150,47 @@ void server_buffer_send(void* param, void* buffer, size_t buffer_size)
     usb_rawhid_send(buffer, 50);
 }
 
+void step_program(void)
+{
+#define PROGRAM_NULL 0
+#define PROGRAM_STAY_ON_TABLE 1
+    static long long int saw_table_edge = 0;
+    switch (teensy.program)
+    {
+        case PROGRAM_STAY_ON_TABLE:
+            // turn on pwm
+            DDRB = 16;
+            DDRD = 2;
+            DDRF = 27;
+            TCCR2A = 163;
+            TCCR2B = 163;
+            // turn on adc
+            DIDR0 = 255;
+            DIDR1 = 0;
+            // check adc value of floor sensor
+            if (teensy.adc.adc[7] > 800)
+                // init backward routine
+                saw_table_edge = 100000;
+            if (saw_table_edge)
+            {
+                // turn backwards
+                PORTF = 9; 
+                OCR2A = 30;
+                OCR2B = 10;
+                // only go backwards for a wee while
+                saw_table_edge--;
+            }
+            else
+            {
+                // go forwards
+                PORTF = 18; 
+                OCR2A = 50;
+                OCR2B = 50;
+            }
+            break;
+    }
+}
+
 int main(void)
 {
     int r;
@@ -189,6 +232,7 @@ int main(void)
         if (r > 0) {
             kowhai_server_process_packet(&server, buffer, RAWHID_PACKET_SIZE);
         }
+        step_program();
     }
 }
 

@@ -16,6 +16,7 @@ char* symbols[] = {
 	"TCCR2B",
 	"OCR2A",
 	"OCR2B",
+	"Program",
 };
 
 #define SYM_TEENSY		0
@@ -32,5 +33,6 @@ char* symbols[] = {
 #define SYM_TCCR2B		11
 #define SYM_OCR2A		12
 #define SYM_OCR2B		13
+#define SYM_PROGRAM		14
 
 #endif
