@@ -154,7 +154,8 @@ void step_program(void)
 {
 #define PROGRAM_NULL 0
 #define PROGRAM_STAY_ON_TABLE 1
-    static long long int saw_table_edge = 0;
+    static long long int saw_table_edge_front = 0;
+    static long long int saw_table_edge_rear = 0;
     switch (teensy.program)
     {
         case PROGRAM_STAY_ON_TABLE:
@@ -170,15 +171,18 @@ void step_program(void)
             // check adc value of floor sensor
             if (teensy.adc.adc[7] > 800 || teensy.adc.adc[6] > 800)
                 // init backward routine
-                saw_table_edge = 100000;
-            if (saw_table_edge)
+                saw_table_edge_front = 100000;
+            if (teensy.adc.adc[5] > 800)
+                // init oh-no! routine
+                saw_table_edge_rear = 30000;
+            if (saw_table_edge_front)
             {
                 // turn backwards
                 PORTF = 9; 
                 OCR2A = 30;
                 OCR2B = 10;
                 // only go backwards for a wee while
-                saw_table_edge--;
+                saw_table_edge_front--;
             }
             else
             {
@@ -186,6 +190,15 @@ void step_program(void)
                 PORTF = 18; 
                 OCR2A = 50;
                 OCR2B = 50;
+            }
+            if (saw_table_edge_rear)
+            {
+                // go nowhere
+                PORTF = 0; 
+                OCR2A = 0;
+                OCR2B = 0;
+                // only go nowhere for a wee while
+                saw_table_edge_rear--;
             }
             break;
     }
@@ -209,11 +222,12 @@ int main(void)
     TCCR0B = ((1 << CS00) | (1 << CS01));   // Set up timer at Fcpu/64 
     TIMSK0 = (1<<TOIE0);                    // Enable timer 0 overflow interrupt
 
-    // Initialize the USB, and then wait for the host to set configuration.
+    // Initialize the USB
+    usb_init();
+    // Wait for the host to set configuration.
     // If the Teensy is powered without a PC connected to the USB port,
     // this will wait forever.
-    usb_init();
-    while (!usb_configured()) /* wait */ ;
+    //while (!usb_configured()) /* wait */ ;
 
     // Wait an extra second for the PC's operating system to load drivers
     // and do whatever it does to actually be ready for input
