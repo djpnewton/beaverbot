@@ -59,10 +59,20 @@ if __name__ == "__main__":
         #    cv.Line(image, pt1, pt2, cv.RGB(255, 0, 0), 3, 8)
         #cv.ShowImage('lines', image)
 
-        # contours
+        # contours + largest area bounding rect
         storage = cv.CreateMemStorage(0)
         contours = cv.FindContours(dilate_eroded, storage)
-        cv.DrawContours(image, contours, cv.RGB(0, 0, 255), cv.RGB(0, 0, 0), 1, 2)
+        biggest_contours = contours
+        biggest_contours_area = -1
+        while contours:
+            cv.DrawContours(image, contours, cv.RGB(0, 0, 255), cv.RGB(0, 0, 0), 1, 2)
+            area = cv.ContourArea(contours)
+            if area > biggest_contours_area:
+                biggest_contours = contours
+                biggest_contours_area = area
+            contours = contours.h_next()
+        rect = cv.BoundingRect(biggest_contours)
+        cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
         cv.ShowImage('contours', image)
         
         # wait for key press before showing next image
