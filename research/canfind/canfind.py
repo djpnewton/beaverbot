@@ -164,7 +164,7 @@ if __name__ == "__main__":
     
     # in r&d mode load files from disk
     rad = True
-    clist = glob.glob('coke*.png')
+    clist = glob.glob('white*.jpg') + glob.glob('coke*.png')
     c = 0
     
     # start looking for cans, or capturing cans data
