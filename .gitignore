@@ -38,3 +38,6 @@ pip-log.txt
 *.map
 *.sym
 *.eep
+
+#visual studio
+obj/
