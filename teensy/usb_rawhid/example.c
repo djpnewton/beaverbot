@@ -34,6 +34,8 @@
 #define LED_CONFIG  (DDRD |= (1<<6))
 #define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 
+#define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+
 //
 // kowhai symbols
 //
@@ -125,7 +127,11 @@ struct teensy_t teensy = {0};
     if (DIDR0 & digital_input_disable)          \
         teensy.adc.adc[adc_pin] = adc_read(adc_pin);
 
-void node_written(void* param, struct kowhai_node_t* node)
+void node_pre_write(pkowhai_protocol_server_t server, void* param, uint16_t tree_id, struct kowhai_node_t* node, int offset)
+{
+}
+
+void node_post_write(pkowhai_protocol_server_t server, void* param, uint16_t tree_id, struct kowhai_node_t* node, int offset, int size)
 {
     if (teensy.LED)
         LED_ON;
@@ -145,9 +151,14 @@ void node_written(void* param, struct kowhai_node_t* node)
     WRITE_REG(teensy.timer2._OCR2B, OCR2B);
 }
 
-void server_buffer_send(void* param, void* buffer, size_t buffer_size)
+void server_buffer_send(pkowhai_protocol_server_t server, void* param, void* buffer, size_t buffer_size)
 {
     usb_rawhid_send(buffer, 50);
+}
+
+int function_called(pkowhai_protocol_server_t server, void* param, uint16_t function_id)
+{
+    return 1;
 }
 
 void step_program(void)
@@ -179,8 +190,8 @@ void step_program(void)
             {
                 // turn backwards
                 PORTF = 9; 
-                OCR2A = 30;
-                OCR2B = 10;
+                OCR2A = 60;
+                OCR2B = 20;
                 // only go backwards for a wee while
                 saw_table_edge_front--;
             }
@@ -188,8 +199,8 @@ void step_program(void)
             {
                 // go forwards
                 PORTF = 18; 
-                OCR2A = 50;
-                OCR2B = 50;
+                OCR2A = 100;
+                OCR2B = 100;
             }
             if (saw_table_edge_rear)
             {
@@ -235,13 +246,34 @@ int main(void)
 
 
     // init kowhai server
+    uint16_t tree_list[] = {SYM_TEENSY};
     struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor};
     size_t tree_descriptor_sizes[] = {sizeof(teensy_descriptor)};
     void* tree_data_buffers[] = {&teensy};
-    struct kowhai_protocol_server_t server = {RAWHID_PACKET_SIZE, buffer, node_written, NULL, server_buffer_send, NULL, 1, tree_descriptors, tree_descriptor_sizes, tree_data_buffers};
+    struct kowhai_protocol_server_t server;
+    kowhai_server_init(&server,
+            RAWHID_PACKET_SIZE,
+            buffer,
+            node_pre_write,
+            node_post_write,
+            NULL,
+            server_buffer_send,
+            NULL,
+            COUNT_OF(tree_list),
+            tree_list,
+            tree_descriptors,
+            tree_descriptor_sizes,
+            tree_data_buffers,
+            0,
+            NULL,
+            NULL,
+            function_called,
+            NULL,
+            COUNT_OF(symbols),
+            symbols);
 
     // init teensy tree
-    teensy.program = PROGRAM_STAY_ON_TABLE;
+    teensy.program = PROGRAM_NULL;
 
     while (1) {
         // if received data, do something with it

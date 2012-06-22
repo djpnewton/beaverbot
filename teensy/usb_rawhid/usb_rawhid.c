@@ -39,10 +39,10 @@
 
 // These 4 numbers identify your device.  Set these to
 // something that is (hopefully) not used by any others!
-#define VENDOR_ID               0x16C0
-#define PRODUCT_ID              0x0480
-#define RAWHID_USAGE_PAGE       0xFFAB  // recommended: 0xFF00 to 0xFFFF
-#define RAWHID_USAGE            0x0200  // recommended: 0x0100 to 0xFFFF
+#define VENDOR_ID               0xBEEF
+#define PRODUCT_ID              0xBABE
+#define RAWHID_USAGE_PAGE       0xFF00  // recommended: 0xFF00 to 0xFFFF
+#define RAWHID_USAGE            0x0100  // recommended: 0x0100 to 0xFFFF
 
 // These determine the bandwidth that will be allocated
 // for your communication.  You do not need to use it
