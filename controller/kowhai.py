@@ -7,7 +7,7 @@ import ctypes
 if sys.platform == "win32":
     libname = "kowhai.dll"
 else:
-    libname = "kowhai.so"
+    libname = "libkowhai.so"
 kowhai_lib = ctypes.cdll.LoadLibrary(libname)
 
 # basic type alias'

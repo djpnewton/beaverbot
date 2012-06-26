@@ -40,7 +40,12 @@ device_info._fields_ = [
     ]
 
 # try loading the shared library.
-lib = CDLL("hidapi.dll")
+import sys
+if sys.platform == "win32":
+    libname = "hidapi.dll"
+else:
+    libname = "libhidapi-hidraw.so"
+lib = cdll.LoadLibrary(libname)
 if not lib:
     raise ImportError("Cannot find hidapi dynamic library")
 
