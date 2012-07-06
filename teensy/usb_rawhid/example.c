@@ -165,20 +165,24 @@ void step_program(void)
 {
 #define PROGRAM_NULL 0
 #define PROGRAM_STAY_ON_TABLE 1
+#define PROGRAM_FORWARD 2
+#define PROGRAM_BACK 3
+#define PROGRAM_LEFT 4
+#define PROGRAM_RIGHT 5
     static long long int saw_table_edge_front = 0;
     static long long int saw_table_edge_rear = 0;
+    // turn on pwm
+    DDRB = 16;
+    DDRD = 2;
+    DDRF = 27;
+    TCCR2A = 163;
+    TCCR2B = 163;
+    // turn on adc
+    DIDR0 = 255;
+    DIDR1 = 0;
     switch (teensy.program)
     {
         case PROGRAM_STAY_ON_TABLE:
-            // turn on pwm
-            DDRB = 16;
-            DDRD = 2;
-            DDRF = 27;
-            TCCR2A = 163;
-            TCCR2B = 163;
-            // turn on adc
-            DIDR0 = 255;
-            DIDR1 = 0;
             // check adc value of floor sensor
             if (teensy.adc.adc[7] > 800 || teensy.adc.adc[6] > 800)
                 // init backward routine
@@ -211,6 +215,30 @@ void step_program(void)
                 // only go nowhere for a wee while
                 saw_table_edge_rear--;
             }
+            break;
+        case PROGRAM_FORWARD:
+            // go forwards
+            PORTF = 18; 
+            OCR2A = 100;
+            OCR2B = 100;
+            break;
+        case PROGRAM_BACK:
+            // go back
+            PORTF = 9; 
+            OCR2A = 35;
+            OCR2B = 35;
+            break;
+        case PROGRAM_LEFT:
+            // go left
+            PORTF = 18; 
+            OCR2A = 35;
+            OCR2B = 100;
+            break;
+        case PROGRAM_RIGHT:
+            // go right
+            PORTF = 18; 
+            OCR2A = 100;
+            OCR2B = 35;
             break;
     }
 }
