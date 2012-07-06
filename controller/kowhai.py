@@ -72,6 +72,7 @@ KOW_STATUS_BUFFER_INVALID           = 10
 KOW_STATUS_SCRATCH_TOO_SMALL        = 11
 KOW_STATUS_NOT_FOUND                = 12
 KOW_STATUS_INVALID_SEQUENCE         = 13
+KOW_STATUS_NO_DATA                  = 14
 
 #uint32_t kowhai_version(void);
 def version():

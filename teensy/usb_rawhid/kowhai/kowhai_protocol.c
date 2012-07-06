@@ -141,6 +141,17 @@ static int parse_function_call(void* payload_packet, int packet_size, struct kow
     return KOW_STATUS_OK;
 }
 
+static int parse_event(void* payload_packet, int packet_size, struct kowhai_protocol_payload_t* payload)
+{
+    if (packet_size < sizeof(struct kowhai_protocol_event_t))
+        return KOW_STATUS_PACKET_BUFFER_TOO_SMALL;
+    memcpy(&payload->spec, payload_packet, sizeof(struct kowhai_protocol_event_t));
+    if (payload->spec.event.size > packet_size - sizeof(struct kowhai_protocol_event_t))
+        return KOW_STATUS_PACKET_BUFFER_TOO_SMALL;
+    payload->buffer = (void*)((char*)payload_packet + sizeof(struct kowhai_protocol_event_t));
+    return KOW_STATUS_OK;
+}
+
 int kowhai_protocol_parse(void* proto_packet, int packet_size, struct kowhai_protocol_t* protocol)
 {
     int required_size = sizeof(struct kowhai_protocol_header_t);
@@ -191,12 +202,25 @@ int kowhai_protocol_parse(void* proto_packet, int packet_size, struct kowhai_pro
             return parse_function_call((void*)((uint8_t*)proto_packet + required_size), packet_size - required_size, &protocol->payload);
         case KOW_CMD_CALL_FUNCTION_FAILED:
             return KOW_STATUS_OK;
+        case KOW_CMD_EVENT:
+        case KOW_CMD_EVENT_END:
+            return parse_event((void*)((uint8_t*)proto_packet + required_size), packet_size - required_size, &protocol->payload);
         case KOW_CMD_GET_SYMBOL_LIST:
             return KOW_STATUS_OK;
         case KOW_CMD_GET_SYMBOL_LIST_ACK:
         case KOW_CMD_GET_SYMBOL_LIST_ACK_END:
             return parse_string_list((void*)((uint8_t*)proto_packet + required_size), packet_size - required_size, &protocol->payload);
 
+        // error codes
+        case KOW_CMD_ERROR_INVALID_COMMAND:
+        case KOW_CMD_ERROR_INVALID_FUNCTION_ID:
+        case KOW_CMD_ERROR_INVALID_PAYLOAD_OFFSET:
+        case KOW_CMD_ERROR_INVALID_PAYLOAD_SIZE:
+        case KOW_CMD_ERROR_INVALID_SEQUENCE:
+        case KOW_CMD_ERROR_INVALID_SYMBOL_PATH:
+        case KOW_CMD_ERROR_INVALID_TREE_ID:
+        case KOW_CMD_ERROR_NO_DATA:
+            return KOW_STATUS_OK;
         default:
             return KOW_STATUS_INVALID_PROTOCOL_COMMAND;
     }
@@ -323,6 +347,20 @@ int kowhai_protocol_create(void* proto_packet, int packet_size, struct kowhai_pr
             break;
         case KOW_CMD_CALL_FUNCTION_FAILED:
             break;
+        case KOW_CMD_EVENT:
+        case KOW_CMD_EVENT_END:
+            // write payload spec
+            *bytes_required += sizeof(struct kowhai_protocol_event_t);
+            if (packet_size < *bytes_required)
+                return KOW_STATUS_PACKET_BUFFER_TOO_SMALL;
+            memcpy(pkt, &protocol->payload.spec.event, sizeof(struct kowhai_protocol_event_t));
+            pkt += sizeof(struct kowhai_protocol_event_t);
+            // write payload
+            *bytes_required += protocol->payload.spec.event.size;
+            if (packet_size < *bytes_required)
+                return KOW_STATUS_PACKET_BUFFER_TOO_SMALL;
+            memcpy(pkt, protocol->payload.buffer, protocol->payload.spec.event.size);
+            break;
         case KOW_CMD_GET_SYMBOL_LIST:
             break;
         case KOW_CMD_GET_SYMBOL_LIST_ACK:
@@ -394,6 +432,10 @@ int kowhai_protocol_get_overhead(struct kowhai_protocol_t* protocol, int* overhe
         case KOW_CMD_CALL_FUNCTION_RESULT:
         case KOW_CMD_CALL_FUNCTION_RESULT_END:
             *overhead = sizeof(struct kowhai_protocol_header_t) + sizeof(struct kowhai_protocol_function_call_t);
+            return KOW_STATUS_OK;
+        case KOW_CMD_EVENT:
+        case KOW_CMD_EVENT_END:
+            *overhead = sizeof(struct kowhai_protocol_header_t) + sizeof(struct kowhai_protocol_event_t);
             return KOW_STATUS_OK;
         case KOW_CMD_GET_SYMBOL_LIST:
             *overhead = sizeof(struct kowhai_protocol_header_t);

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#define VERSION 3
+#define VERSION 4
 
 uint32_t kowhai_version(void)
 {

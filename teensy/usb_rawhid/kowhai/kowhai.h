@@ -80,6 +80,7 @@ union kowhai_symbol_t
 #define KOW_STATUS_SCRATCH_TOO_SMALL       11
 #define KOW_STATUS_NOT_FOUND               12
 #define KOW_STATUS_INVALID_SEQUENCE        13
+#define KOW_STATUS_NO_DATA                 14
 
 /**
  * @brief return the version of the kowhai library

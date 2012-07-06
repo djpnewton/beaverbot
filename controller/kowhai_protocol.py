@@ -29,9 +29,11 @@ KOW_CMD_CALL_FUNCTION_ACK = 0x7F
 KOW_CMD_CALL_FUNCTION_RESULT = 0x7E
 KOW_CMD_CALL_FUNCTION_RESULT_END = 0x7D
 KOW_CMD_CALL_FUNCTION_FAILED = 0x7C
-KOW_CMD_GET_SYMBOL_LIST = 0x80
-KOW_CMD_GET_SYMBOL_LIST_ACK = 0x8F
-KOW_CMD_GET_SYMBOL_LIST_ACK_END = 0x8E
+KOW_CMD_EVENT = 0x80
+KOW_CMD_EVENT_END = 0x8F
+KOW_CMD_GET_SYMBOL_LIST = 0x90
+KOW_CMD_GET_SYMBOL_LIST_ACK = 0x9F
+KOW_CMD_GET_SYMBOL_LIST_ACK_END = 0x9E
 
 # protocol error codes
 KOW_CMD_ERROR_INVALID_COMMAND = 0xF0
@@ -41,6 +43,7 @@ KOW_CMD_ERROR_INVALID_SYMBOL_PATH = 0xF3
 KOW_CMD_ERROR_INVALID_PAYLOAD_OFFSET = 0xF4
 KOW_CMD_ERROR_INVALID_PAYLOAD_SIZE = 0xF5
 KOW_CMD_ERROR_INVALID_SEQUENCE = 0xF6
+KOW_CMD_ERROR_NO_DATA = 0xF7
 KOW_CMD_ERROR_UNKNOWN = 0xFF
 
 class kowhai_protocol_header_t(ctypes.Structure):
@@ -93,6 +96,11 @@ class kowhai_protocol_function_call_t(ctypes.Structure):
     _fields_ = [('offset', uint16_t),
                 ('size', uint16_t)]
 
+class kowhai_protocol_event_t(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [('offset', uint16_t),
+                ('size', uint16_t)]
+
 class kowhai_protocol_payload_spec_t(ctypes.Union):
     _pack_ = 1
     _fields_ = [('version', uint32_t),
@@ -101,6 +109,7 @@ class kowhai_protocol_payload_spec_t(ctypes.Union):
                 ('descriptor', kowhai_protocol_descriptor_payload_spec_t),
                 ('function_details', kowhai_protocol_function_details_t),
                 ('function_call', kowhai_protocol_function_call_t),
+                ('event', kowhai_protocol_event_t),
                 ('string_list', kowhai_protocol_string_list_t)]
 
 class kowhai_protocol_payload_t(ctypes.Structure):
