@@ -21,6 +21,13 @@ while devinfo:
     devinfo = devinfo.contents.next
 hidapi.HID.free_enumeration(orig_devinfo)
 
+# get program param
+program = "\x01"
+import sys
+if len(sys.argv) > 1:
+    program = chr(int(sys.argv[1]))
+print "program:", program
+
 # open teensy hid
 if path:
     # open hid
@@ -39,7 +46,7 @@ if path:
     prot.payload.spec.data.symbols.array_ = symbols_program
     prot.payload.spec.data.memory.offset = 0
     prot.payload.spec.data.memory.size = 1
-    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer("\x01")), ctypes.c_void_p)
+    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(program)), ctypes.c_void_p)
     bytes_required = ctypes.c_int()
     res = create(buf, buf_size, prot, bytes_required)
     # add report id
