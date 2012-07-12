@@ -6,7 +6,8 @@ import math
 
 RED = 0
 ADAPT = 1
-mode = ADAPT
+INDIGO_LASER = 2
+mode = INDIGO_LASER
 
 if __name__ == "__main__":
 
@@ -15,22 +16,31 @@ if __name__ == "__main__":
         clist = glob.glob("coke*.png")
     elif mode == ADAPT:
         clist = glob.glob("coke*.png") + glob.glob("white*.jpg")
+    elif mode == INDIGO_LASER:
+        clist = glob.glob("indigo_laser*.jpg")
 
     # create image buffers
     size = 640, 480
-    if mode == RED:
+    if mode == RED or mode == INDIGO_LASER:
         hsv_frame = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
         thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
         thresholded2 = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
         dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
 
-        # create some color stuff
-        sat_min, sat_max = 210, 255
-        bri_min, bri_max = 210, 255
-        hsv_min = cv.Scalar(175, sat_min, bri_min, 0);
-        hsv_max = cv.Scalar(180, sat_max, bri_max, 0);
-        hsv_min2 = cv.Scalar(0, sat_min, bri_min, 0);
-        hsv_max2 = cv.Scalar(5, sat_max, bri_max, 0);
+        if mode == RED:
+            # create some color stuff
+            sat_min, sat_max = 210, 255
+            bri_min, bri_max = 210, 255
+            hsv_min = cv.Scalar(175, sat_min, bri_min, 0);
+            hsv_max = cv.Scalar(180, sat_max, bri_max, 0);
+            hsv_min2 = cv.Scalar(0, sat_min, bri_min, 0);
+            hsv_max2 = cv.Scalar(5, sat_max, bri_max, 0);
+        else:
+            # create some color stuff
+            hsv_min = cv.Scalar(120, 50, 50, 0);
+            hsv_max = cv.Scalar(150, 250, 200, 0);
+            hsv_min2 = cv.Scalar(150, 100, 100, 100);
+            hsv_max2 = cv.Scalar(151, 101, 101, 101);
     elif mode == ADAPT:
         bw = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
         thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
@@ -41,7 +51,7 @@ if __name__ == "__main__":
         image = cv.LoadImage(f, cv.CV_LOAD_IMAGE_COLOR)
         cv.ShowImage('cam', image)
 
-        if mode == RED:
+        if mode == RED or mode == INDIGO_LASER:
             # threshold based on HSV values
             cv.CvtColor(image, hsv_frame, cv.CV_BGR2HSV)
             cv.InRangeS(hsv_frame, hsv_min, hsv_max, thresholded)
