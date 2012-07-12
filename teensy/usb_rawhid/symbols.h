@@ -17,6 +17,12 @@ char* symbols[] = {
 	"OCR2A",
 	"OCR2B",
 	"Program",
+	"TableSensor",
+	"Trigger",
+	"Value",
+	"Triggered",
+	"TableSensorEvent",
+	"Sensor",
 };
 
 #define SYM_TEENSY		0
@@ -34,5 +40,11 @@ char* symbols[] = {
 #define SYM_OCR2A		12
 #define SYM_OCR2B		13
 #define SYM_PROGRAM		14
+#define SYM_TABLESENSOR		15
+#define SYM_TRIGGER		16
+#define SYM_VALUE		17
+#define SYM_TRIGGERED		18
+#define SYM_TABLESENSOREVENT		19
+#define SYM_SENSOR		20
 
 #endif

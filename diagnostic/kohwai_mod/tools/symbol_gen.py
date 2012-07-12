@@ -2,6 +2,17 @@
 f = open("symbols.txt")
 syms = f.read().split()
 
+# strip duplicates
+def check_exists(sym, syms):
+    for s in syms:
+        if s.lower() == sym.lower():
+            return True
+syms2 = []
+for sym in syms:
+    if not check_exists(sym, syms2):
+        syms2.append(sym)
+syms = syms2
+
 # write symbols.h
 f = open("symbols.h", "w")
 f.write("#ifndef _SYMBOLS_H_\n")

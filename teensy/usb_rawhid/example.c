@@ -48,6 +48,7 @@
 
 #define PORT_COUNT 6
 #define ADC_COUNT 8
+#define TABLE_SENSOR_COUNT 4
 
 struct kowhai_node_t teensy_descriptor[] =
 {
@@ -70,7 +71,21 @@ struct kowhai_node_t teensy_descriptor[] =
     { KOW_UINT8,            SYM_OCR2B,          1,                0 },
     { KOW_BRANCH_END,       SYM_TIMER2,         1,                0 },
     { KOW_UINT8,            SYM_PROGRAM,        1,                0 },
+    { KOW_BRANCH_START,     SYM_TABLESENSOR,    TABLE_SENSOR_COUNT,0 },
+    { KOW_UINT16,           SYM_TRIGGER,        1,                0 },
+    { KOW_UINT16,           SYM_VALUE,          1,                0 },
+    { KOW_UINT8,            SYM_TRIGGERED,      1,                0 },
+    { KOW_BRANCH_END,       SYM_TABLESENSOR,    0,                0 },
     { KOW_BRANCH_END,       SYM_TEENSY,         1,                0 },
+};
+
+struct kowhai_node_t table_sensor_event_descriptor[] =
+{
+    { KOW_BRANCH_START,     SYM_TABLESENSOREVENT,1,               0 },
+    { KOW_UINT8,            SYM_SENSOR,         1,                0 },
+    { KOW_UINT8,            SYM_TRIGGERED,      1,                0 },
+    { KOW_UINT16,           SYM_VALUE,          1,                0 },
+    { KOW_BRANCH_END,       SYM_TABLESENSOREVENT,1,               0 },
 };
 
 //
@@ -99,6 +114,13 @@ struct timer2_t
     uint8_t _OCR2B;
 };
 
+struct table_sensor_t
+{
+    uint16_t trigger;
+    uint16_t value;
+    uint8_t triggered;
+};
+
 struct teensy_t
 {
     uint8_t LED;
@@ -106,6 +128,14 @@ struct teensy_t
     struct adc_t adc;
     struct timer2_t timer2;
     uint8_t program;
+    struct table_sensor_t sensors[TABLE_SENSOR_COUNT];
+};
+
+struct table_sensor_event_t
+{
+    uint8_t sensor;
+    uint8_t triggered;
+    uint16_t value;
 };
 
 struct teensy_t teensy = {0};
@@ -161,16 +191,73 @@ int function_called(pkowhai_protocol_server_t server, void* param, uint16_t func
     return 1;
 }
 
-void step_program(void)
+enum program_t
 {
-#define PROGRAM_NULL 0
-#define PROGRAM_STAY_ON_TABLE 1
-#define PROGRAM_FORWARD 2
-#define PROGRAM_BACK 3
-#define PROGRAM_LEFT 4
-#define PROGRAM_RIGHT 5
+    PROGRAM_NULL,
+    PROGRAM_CALIBRATE_TABLE_SENSORS,
+    PROGRAM_REPORT_SENSORS,
+    PROGRAM_STAY_ON_TABLE,
+    PROGRAM_FORWARD,
+    PROGRAM_BACK,
+    PROGRAM_LEFT,
+    PROGRAM_RIGHT,
+};
+
+void send_sensor_event(struct kowhai_protocol_server_t* server, struct table_sensor_event_t* event)
+{
+    kowhai_server_process_event(server, SYM_TABLESENSOREVENT, event, sizeof(struct table_sensor_event_t));
+}
+
+void stay_on_table(void)
+{
     static long long int saw_table_edge_front = 0;
     static long long int saw_table_edge_rear = 0;
+    // check adc value of floor sensor
+    if (teensy.sensors[0].value > teensy.sensors[0].trigger ||
+        teensy.sensors[1].value > teensy.sensors[1].trigger)
+        // init backward routine
+        saw_table_edge_front = 100000;
+    if (teensy.sensors[2].value > teensy.sensors[2].trigger)
+        // init oh-no! routine
+        saw_table_edge_rear = 30000;
+    if (saw_table_edge_front)
+    {
+        // turn backwards
+        PORTF = 9; 
+        OCR2A = 60;
+        OCR2B = 20;
+        // only go backwards for a wee while
+        saw_table_edge_front--;
+    }
+    else
+    {
+        // go forwards
+        PORTF = 18; 
+        OCR2A = 100;
+        OCR2B = 100;
+    }
+    if (saw_table_edge_rear)
+    {
+        // go nowhere
+        PORTF = 0; 
+        OCR2A = 0;
+        OCR2B = 0;
+        // only go nowhere for a wee while
+        saw_table_edge_rear--;
+    }
+}
+
+#define ADC_MAX 1024
+#define ADC_HIST 10 // hysteresis
+#define TRIGGER_RATIO (0.75f)
+void step_program(struct kowhai_protocol_server_t* server)
+{
+    int i;
+    // get table sensor values
+    teensy.sensors[0].value = teensy.adc.adc[7];
+    teensy.sensors[1].value = teensy.adc.adc[6];
+    teensy.sensors[2].value = teensy.adc.adc[5];
+    teensy.sensors[3].value = teensy.adc.adc[4];
     // turn on pwm
     DDRB = 16;
     DDRD = 2;
@@ -182,39 +269,39 @@ void step_program(void)
     DIDR1 = 0;
     switch (teensy.program)
     {
+        case PROGRAM_CALIBRATE_TABLE_SENSORS:
+            teensy.sensors[0].trigger = teensy.sensors[0].value + (ADC_MAX - teensy.sensors[0].value) * TRIGGER_RATIO;
+            teensy.sensors[1].trigger = teensy.sensors[1].value + (ADC_MAX - teensy.sensors[1].value) * TRIGGER_RATIO;
+            teensy.sensors[2].trigger = teensy.sensors[2].value + (ADC_MAX - teensy.sensors[2].value) * TRIGGER_RATIO;
+            teensy.sensors[3].trigger = teensy.sensors[3].value + (ADC_MAX - teensy.sensors[3].value) * TRIGGER_RATIO;
+            teensy.program = PROGRAM_NULL;
+            break;
+        case PROGRAM_REPORT_SENSORS:
+            // send table sensor events
+            for (i = 0; i < TABLE_SENSOR_COUNT; i++)
+            {
+                if (teensy.sensors[i].triggered)
+                {
+                    if (teensy.sensors[i].value < teensy.sensors[i].trigger - ADC_HIST)
+                    {
+                        teensy.sensors[i].triggered = 0;
+                        struct table_sensor_event_t event = { i, 0, teensy.sensors[i].value };
+                        send_sensor_event(server, &event);
+                    }
+                }
+                else
+                {
+                    if (teensy.sensors[i].value > teensy.sensors[i].trigger + 50)
+                    {
+                        teensy.sensors[i].triggered = 1;
+                        struct table_sensor_event_t event = { i, 1, teensy.sensors[i].value };
+                        send_sensor_event(server, &event);
+                    }
+                }
+            }
+            break;
         case PROGRAM_STAY_ON_TABLE:
-            // check adc value of floor sensor
-            if (teensy.adc.adc[7] > 800 || teensy.adc.adc[6] > 800)
-                // init backward routine
-                saw_table_edge_front = 100000;
-            if (teensy.adc.adc[5] > 800)
-                // init oh-no! routine
-                saw_table_edge_rear = 30000;
-            if (saw_table_edge_front)
-            {
-                // turn backwards
-                PORTF = 9; 
-                OCR2A = 60;
-                OCR2B = 20;
-                // only go backwards for a wee while
-                saw_table_edge_front--;
-            }
-            else
-            {
-                // go forwards
-                PORTF = 18; 
-                OCR2A = 100;
-                OCR2B = 100;
-            }
-            if (saw_table_edge_rear)
-            {
-                // go nowhere
-                PORTF = 0; 
-                OCR2A = 0;
-                OCR2B = 0;
-                // only go nowhere for a wee while
-                saw_table_edge_rear--;
-            }
+            stay_on_table();
             break;
         case PROGRAM_FORWARD:
             // go forwards
@@ -274,10 +361,11 @@ int main(void)
 
 
     // init kowhai server
-    uint16_t tree_list[] = {SYM_TEENSY};
-    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor};
-    size_t tree_descriptor_sizes[] = {sizeof(teensy_descriptor)};
-    void* tree_data_buffers[] = {&teensy};
+    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT};
+    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor};
+    size_t tree_descriptor_sizes[COUNT_OF(tree_descriptors)];
+    void* tree_data_buffers[] = {&teensy, NULL};
+    kowhai_server_init_tree_descriptor_sizes(tree_descriptors, tree_descriptor_sizes, COUNT_OF(tree_descriptors));
     struct kowhai_protocol_server_t server;
     kowhai_server_init(&server,
             RAWHID_PACKET_SIZE,
@@ -309,7 +397,7 @@ int main(void)
         if (r > 0) {
             kowhai_server_process_packet(&server, buffer, RAWHID_PACKET_SIZE);
         }
-        step_program();
+        step_program(&server);
     }
 }
 
