@@ -104,7 +104,13 @@ void kowhai_server_init(struct kowhai_protocol_server_t* server,
  */
 int kowhai_server_process_packet(struct kowhai_protocol_server_t* server, void* packet, size_t packet_size);
 
-
+/**
+ * @brief Process a kowhai event and send protocol response
+ * @param tree_id the tree id (the description of the data contained in this event)
+ * @param buffer the event data buffer
+ * @param buffer_size the size of the buffer
+ */
+int kowhai_server_process_event(struct kowhai_protocol_server_t* server, uint16_t tree_id, void* buffer, int buffer_size);
 
 
 #endif

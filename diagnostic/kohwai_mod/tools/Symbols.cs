@@ -19,6 +19,12 @@ namespace KowhaiSymbols
             "OCR2A",
             "OCR2B",
             "Program",
+            "TableSensor",
+            "Trigger",
+            "Value",
+            "Triggered",
+            "TableSensorEvent",
+            "Sensor",
         };
         public enum Constants
         {
@@ -37,6 +43,12 @@ namespace KowhaiSymbols
             OCR2A,
             OCR2B,
             Program,
+            TableSensor,
+            Trigger,
+            Value,
+            Triggered,
+            TableSensorEvent,
+            Sensor,
         };
     }
 }

@@ -13,3 +13,13 @@ TCCR2B
 OCR2A
 OCR2B
 Program
+TableSensor
+Trigger
+Value
+Triggered
+
+TableSensorEvent
+Sensor
+Triggered
+Value
+

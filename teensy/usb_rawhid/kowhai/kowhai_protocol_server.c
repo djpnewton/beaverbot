@@ -257,6 +257,10 @@ void _set_error_cmd(struct kowhai_protocol_t* prot, int status)
             KOW_LOG("    invalid sequence\n");
             prot->header.command = KOW_CMD_ERROR_INVALID_SEQUENCE;
             break;
+        case KOW_STATUS_NO_DATA:
+            KOW_LOG("    no tree data\n");
+            prot->header.command = KOW_CMD_ERROR_NO_DATA;
+            break;
         default:
             KOW_LOG("    unknown error\n");
             prot->header.command = KOW_CMD_ERROR_UNKNOWN;
@@ -383,8 +387,12 @@ int kowhai_server_process_packet(struct kowhai_protocol_server_t* server, void* 
             }
             // init tree helper struct
             tree = _populate_tree(server, prot.header.id);
-            // get node information
-            status = kowhai_get_node(tree.desc, prot.payload.spec.data.symbols.count, prot.payload.spec.data.symbols.array_, &node_offset, &node);
+            // cancel if tree has no data
+            if (tree.data == NULL)
+                status = KOW_STATUS_NO_DATA;
+            else
+                // get node information
+                status = kowhai_get_node(tree.desc, prot.payload.spec.data.symbols.count, prot.payload.spec.data.symbols.array_, &node_offset, &node);
             if (status == KOW_STATUS_OK)
             {
                 union kowhai_symbol_t last_sym = symbols.array_[symbols.count-1];
@@ -624,5 +632,37 @@ int kowhai_server_process_packet(struct kowhai_protocol_server_t* server, void* 
             break;
     }
 
+    return KOW_STATUS_OK;
+}
+
+int kowhai_server_process_event(struct kowhai_protocol_server_t* server, uint16_t tree_id, void* buffer, int buffer_size)
+{
+    int overhead, max_payload_size, bytes_required;
+    struct kowhai_protocol_t prot;
+    KOW_LOG("process event\n");
+    prot.header.command = KOW_CMD_EVENT;
+    prot.header.id = tree_id;
+    kowhai_protocol_get_overhead(&prot, &overhead);
+    // setup max payload size and payload offset
+    max_payload_size = server->max_packet_size - overhead;
+    prot.payload.spec.event.offset = 0;
+    prot.payload.buffer = buffer;
+    // send packets
+    while (buffer_size > max_payload_size)
+    {
+        prot.payload.spec.event.size = max_payload_size;
+        prot.payload.buffer = (char*)buffer + prot.payload.spec.event.offset;
+        kowhai_protocol_create(server->packet_buffer, server->max_packet_size, &prot, &bytes_required);
+        server->send_packet(server, server->send_packet_param, server->packet_buffer, bytes_required);
+        // increment payload offset and decrement remaining payload size
+        prot.payload.spec.event.offset += max_payload_size;
+        buffer_size -= max_payload_size;
+    }
+    // send final packet
+    prot.header.command = KOW_CMD_EVENT_END;
+    prot.payload.spec.event.size = buffer_size;
+    prot.payload.buffer = (char*)buffer + prot.payload.spec.event.offset;
+    kowhai_protocol_create(server->packet_buffer, server->max_packet_size, &prot, &bytes_required);
+    server->send_packet(server, server->send_packet_param, server->packet_buffer, bytes_required);
     return KOW_STATUS_OK;
 }

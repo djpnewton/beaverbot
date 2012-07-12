@@ -62,12 +62,17 @@
 // Call function failed
 #define KOW_CMD_CALL_FUNCTION_FAILED         0x7C
 
+// Server event
+#define KOW_CMD_EVENT                        0x80
+// Server event (final packet)
+#define KOW_CMD_EVENT_END                    0x8F
+
 // Get the symbol list
-#define KOW_CMD_GET_SYMBOL_LIST              0x80
+#define KOW_CMD_GET_SYMBOL_LIST              0x90
 // Acknowledge get symbol list command (and return list)
-#define KOW_CMD_GET_SYMBOL_LIST_ACK          0x8F
+#define KOW_CMD_GET_SYMBOL_LIST_ACK          0x9F
 // Acknowledge get symbol list command (this is the final packet)
-#define KOW_CMD_GET_SYMBOL_LIST_ACK_END      0x8E
+#define KOW_CMD_GET_SYMBOL_LIST_ACK_END      0x9E
 
 
 // Error codes
@@ -78,6 +83,7 @@
 #define KOW_CMD_ERROR_INVALID_PAYLOAD_OFFSET 0xF4
 #define KOW_CMD_ERROR_INVALID_PAYLOAD_SIZE   0xF5
 #define KOW_CMD_ERROR_INVALID_SEQUENCE       0xF6
+#define KOW_CMD_ERROR_NO_DATA                0xF7
 #define KOW_CMD_ERROR_UNKNOWN                0xFF
 
 //
@@ -175,6 +181,15 @@ struct kowhai_protocol_function_call_t
 /**
  * @brief 
  */
+struct kowhai_protocol_event_t
+{
+    uint16_t offset;
+    uint16_t size;
+};
+
+/**
+ * @brief 
+ */
 union kowhai_protocol_payload_spec_t
 {
     uint32_t version;
@@ -183,6 +198,7 @@ union kowhai_protocol_payload_spec_t
     struct kowhai_protocol_descriptor_payload_spec_t descriptor;
     struct kowhai_protocol_function_details_t function_details;
     struct kowhai_protocol_function_call_t function_call;
+    struct kowhai_protocol_event_t event;
     struct kowhai_protocol_string_list_t string_list;
 };
 
