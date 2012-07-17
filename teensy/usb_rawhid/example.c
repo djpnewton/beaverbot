@@ -49,6 +49,7 @@
 #define PORT_COUNT 6
 #define ADC_COUNT 8
 #define TABLE_SENSOR_COUNT 4
+#define MOTOR_COUNT 2
 
 struct kowhai_node_t teensy_descriptor[] =
 {
@@ -86,6 +87,16 @@ struct kowhai_node_t table_sensor_event_descriptor[] =
     { KOW_UINT8,            SYM_TRIGGERED,      1,                0 },
     { KOW_UINT16,           SYM_VALUE,          1,                0 },
     { KOW_BRANCH_END,       SYM_TABLESENSOREVENT,1,               0 },
+};
+
+struct kowhai_node_t motor_set_descriptor[] =
+{
+    { KOW_BRANCH_START,     SYM_MOTORSET,       1,                0 },
+    { KOW_BRANCH_START,     SYM_MOTOR,          MOTOR_COUNT,      0 },
+    { KOW_UINT8,            SYM_DIRECTION,      1,                0 },
+    { KOW_UINT8,            SYM_VALUE,          1,                0 },
+    { KOW_BRANCH_END,       SYM_MOTOR,          1,                0 },
+    { KOW_BRANCH_END,       SYM_MOTORSET,       1,                0 },
 };
 
 //
@@ -138,7 +149,19 @@ struct table_sensor_event_t
     uint16_t value;
 };
 
+struct motor_t
+{
+    uint8_t direction;
+    uint8_t value;
+};
+
+struct motor_set_t
+{
+    struct motor_t motor[MOTOR_COUNT];
+};
+
 struct teensy_t teensy = {0};
+struct motor_set_t motor_set = {0};
 
 #define WRITE_PORT(port_settings, _ddr, _port)  \
     if (port_settings.ddr != _ddr)              \
@@ -186,9 +209,17 @@ void server_buffer_send(pkowhai_protocol_server_t server, void* param, void* buf
     usb_rawhid_send(buffer, 50);
 }
 
+void motor_set_(struct motor_set_t* ms);
+
 int function_called(pkowhai_protocol_server_t server, void* param, uint16_t function_id)
 {
-    return 1;
+    switch (function_id)
+    {
+        case SYM_MOTORSET:
+            motor_set_(&motor_set);
+            return 1;
+    }
+    return 0;
 }
 
 enum program_t
@@ -208,6 +239,22 @@ void send_sensor_event(struct kowhai_protocol_server_t* server, struct table_sen
     kowhai_server_process_event(server, SYM_TABLESENSOREVENT, event, sizeof(struct table_sensor_event_t));
 }
 
+void motor_set_(struct motor_set_t* ms)
+{
+    unsigned char portf = 0;
+    if (ms->motor[0].direction == 1)
+        portf |= 2;
+    else if (ms->motor[0].direction == 2)
+        portf |= 1;
+    if (ms->motor[1].direction == 1)
+        portf |= 8;
+    else if (ms->motor[1].direction == 2)
+        portf |= 4;
+    PORTF = portf;
+    OCR2A = ms->motor[0].value;
+    OCR2B = ms->motor[1].value;
+}
+
 void stay_on_table(void)
 {
     static long long int saw_table_edge_front = 0;
@@ -216,14 +263,14 @@ void stay_on_table(void)
     if (teensy.sensors[0].value > teensy.sensors[0].trigger ||
         teensy.sensors[1].value > teensy.sensors[1].trigger)
         // init backward routine
-        saw_table_edge_front = 100000;
+        saw_table_edge_front = 50000;
     if (teensy.sensors[2].value > teensy.sensors[2].trigger)
         // init oh-no! routine
         saw_table_edge_rear = 30000;
     if (saw_table_edge_front)
     {
         // turn backwards
-        PORTF = 9; 
+        PORTF = 5; 
         OCR2A = 60;
         OCR2B = 20;
         // only go backwards for a wee while
@@ -232,7 +279,7 @@ void stay_on_table(void)
     else
     {
         // go forwards
-        PORTF = 18; 
+        PORTF = 10; 
         OCR2A = 100;
         OCR2B = 100;
     }
@@ -261,7 +308,7 @@ void step_program(struct kowhai_protocol_server_t* server)
     // turn on pwm
     DDRB = 16;
     DDRD = 2;
-    DDRF = 27;
+    DDRF = 15;
     TCCR2A = 163;
     TCCR2B = 163;
     // turn on adc
@@ -311,19 +358,19 @@ void step_program(struct kowhai_protocol_server_t* server)
             break;
         case PROGRAM_BACK:
             // go back
-            PORTF = 9; 
+            PORTF = 5; 
             OCR2A = 35;
             OCR2B = 35;
             break;
         case PROGRAM_LEFT:
             // go left
-            PORTF = 18; 
+            PORTF = 10; 
             OCR2A = 35;
             OCR2B = 100;
             break;
         case PROGRAM_RIGHT:
             // go right
-            PORTF = 18; 
+            PORTF = 10; 
             OCR2A = 100;
             OCR2B = 35;
             break;
@@ -361,10 +408,14 @@ int main(void)
 
 
     // init kowhai server
-    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT};
-    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor};
+    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT, SYM_MOTORSET};
+    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor, motor_set_descriptor};
     size_t tree_descriptor_sizes[COUNT_OF(tree_descriptors)];
-    void* tree_data_buffers[] = {&teensy, NULL};
+    void* tree_data_buffers[] = {&teensy, NULL, &motor_set};
+    uint16_t function_list[] = {SYM_MOTORSET};
+    struct kowhai_protocol_function_details_t function_list_details[] = {
+        {SYM_MOTORSET, KOW_UNDEFINED_SYMBOL},
+    };
     kowhai_server_init_tree_descriptor_sizes(tree_descriptors, tree_descriptor_sizes, COUNT_OF(tree_descriptors));
     struct kowhai_protocol_server_t server;
     kowhai_server_init(&server,
@@ -380,9 +431,9 @@ int main(void)
             tree_descriptors,
             tree_descriptor_sizes,
             tree_data_buffers,
-            0,
-            NULL,
-            NULL,
+            COUNT_OF(function_list),
+            function_list,
+            function_list_details,
             function_called,
             NULL,
             COUNT_OF(symbols),

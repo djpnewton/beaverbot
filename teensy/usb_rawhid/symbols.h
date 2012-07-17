@@ -23,6 +23,9 @@ char* symbols[] = {
 	"Triggered",
 	"TableSensorEvent",
 	"Sensor",
+	"MotorSet",
+	"Motor",
+	"Direction",
 };
 
 #define SYM_TEENSY		0
@@ -46,5 +49,8 @@ char* symbols[] = {
 #define SYM_TRIGGERED		18
 #define SYM_TABLESENSOREVENT		19
 #define SYM_SENSOR		20
+#define SYM_MOTORSET		21
+#define SYM_MOTOR		22
+#define SYM_DIRECTION		23
 
 #endif
