@@ -38,7 +38,7 @@ if __name__ == "__main__":
         else:
             # create some color stuff
             hsv_min = cv.Scalar(120, 50, 50, 0);
-            hsv_max = cv.Scalar(150, 250, 200, 0);
+            hsv_max = cv.Scalar(160, 255, 255, 0);
             hsv_min2 = cv.Scalar(150, 100, 100, 100);
             hsv_max2 = cv.Scalar(151, 101, 101, 101);
     elif mode == ADAPT:

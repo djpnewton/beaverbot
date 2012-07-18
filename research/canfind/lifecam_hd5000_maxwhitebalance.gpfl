@@ -1,0 +1,33 @@
+#V4L2/CTRL/0.0.2
+APP{"guvcview 1.5.3"}
+# control data
+#Brightness
+ID{0x00980900};CHK{30:255:1:133}=VAL{30}
+#Contrast
+ID{0x00980901};CHK{0:10:1:5}=VAL{10}
+#Saturation
+ID{0x00980902};CHK{0:200:1:83}=VAL{200}
+#White Balance Temperature, Auto
+ID{0x0098090c};CHK{0:1:1:1}=VAL{0}
+#Power Line Frequency
+ID{0x00980918};CHK{0:2:1:2}=VAL{1}
+#White Balance Temperature
+ID{0x0098091a};CHK{2800:10000:1:4500}=VAL{10000}
+#Sharpness
+ID{0x0098091b};CHK{0:50:1:25}=VAL{23}
+#Backlight Compensation
+ID{0x0098091c};CHK{0:10:1:0}=VAL{0}
+#Exposure, Auto
+ID{0x009a0901};CHK{0:3:1:1}=VAL{1}
+#Exposure (Absolute)
+ID{0x009a0902};CHK{5:20000:1:156}=VAL{5}
+#Pan (Absolute)
+ID{0x009a0908};CHK{-201600:201600:3600:0}=VAL{0}
+#Tilt (Absolute)
+ID{0x009a0909};CHK{-201600:201600:3600:0}=VAL{0}
+#Focus (absolute)
+ID{0x009a090a};CHK{0:40:1:0}=VAL{0}
+#Focus, Auto
+ID{0x009a090c};CHK{0:1:1:0}=VAL{0}
+#Zoom, Absolute
+ID{0x009a090d};CHK{0:10:1:0}=VAL{0}
