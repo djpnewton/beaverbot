@@ -25,6 +25,9 @@ namespace KowhaiSymbols
             "Triggered",
             "TableSensorEvent",
             "Sensor",
+            "MotorSet",
+            "Motor",
+            "Direction",
         };
         public enum Constants
         {
@@ -49,6 +52,9 @@ namespace KowhaiSymbols
             Triggered,
             TableSensorEvent,
             Sensor,
+            MotorSet,
+            Motor,
+            Direction,
         };
     }
 }
