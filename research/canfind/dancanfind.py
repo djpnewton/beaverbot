@@ -106,7 +106,8 @@ def find_can(mode, image):
         rect = cv.BoundingRect(biggest_contours)
         cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
         cv.ShowImage('contours', image)
-
+        return rect
+    return None
 
 if __name__ == "__main__":
 

@@ -1,6 +1,8 @@
 import cv
 import dancanfind
 
+hunt = True
+
 cap = cv.CaptureFromCAM(-1)
 # set the width, height and exposure
 cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, 320);
@@ -11,11 +13,15 @@ cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_EXPOSURE, 1);
 while True:
     image = cv.QueryFrame(cap)
 
-    dancanfind.find_can(dancanfind.INDIGO_LASER, image)
+    rect = dancanfind.find_can(dancanfind.INDIGO_LASER, image)
 
-    key = cv.WaitKey(0)
-    key &= 0xff
-    print key
-    if key == 27:
-        break
+    if hunt:
+        #todo
+        print rect
+    else:
+        key = cv.WaitKey(0)
+        key &= 0xff
+        print key
+        if key == 27:
+            break
 
