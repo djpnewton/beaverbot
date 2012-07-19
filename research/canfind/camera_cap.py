@@ -1,4 +1,5 @@
 import cv
+import dancanfind
 
 cap = cv.CaptureFromCAM(-1)
 # set the width, height and exposure
@@ -9,7 +10,8 @@ cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_EXPOSURE, 1);
 
 while True:
     image = cv.QueryFrame(cap)
-    cv.ShowImage('cam', image)
+
+    dancanfind.find_can(dancanfind.INDIGO_LASER, image)
 
     key = cv.WaitKey(0)
     key &= 0xff

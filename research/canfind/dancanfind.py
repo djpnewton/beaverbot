@@ -10,7 +10,7 @@ INDIGO_LASER = 2
 
 def find_can(mode, image):
     # create image buffers
-    size = 640, 480
+    size = image.width, image.height
     if mode == RED or mode == INDIGO_LASER:
         hsv_frame = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
         thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
@@ -102,9 +102,10 @@ def find_can(mode, image):
             biggest_contours = contours
             biggest_contours_area = area
         contours = contours.h_next()
-    rect = cv.BoundingRect(biggest_contours)
-    cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
-    cv.ShowImage('contours', image)
+    if biggest_contours:
+        rect = cv.BoundingRect(biggest_contours)
+        cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
+        cv.ShowImage('contours', image)
 
 
 if __name__ == "__main__":
