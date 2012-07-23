@@ -75,8 +75,9 @@ if __name__ == "__main__":
     dir2 = None
     pwm1 = None
     pwm2 = None
+    can_chase = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:c", ["program="])
     for o, a in opts:
         if o == '-p':
             program = chr(int(a))
@@ -93,6 +94,9 @@ if __name__ == "__main__":
         elif o == '-S':
             pwm2 = chr(int(a))
             print "pwm2", pwm2
+        elif o == '-c':
+            can_chase = True
+            print "can_chase"
 
     # open teensy hid
     path = find_teensy()
@@ -106,10 +110,43 @@ if __name__ == "__main__":
             # write to teensy
             write_teensy(dev, buf, buf_size)
         if dir1:
-            print "set motors", dir1, pwm1, dir2, pwm2
+            print "set motors", ord(dir1), ord(pwm1), ord(dir2), ord(pwm2)
             # create set_motor packet
             buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
             # write to teensy
             write_teensy(dev, buf, buf_size)
+        if can_chase:
+            import cv
+            import dancanfind # need PYTHONPATH set for this
+            # get cam and set the width and height
+            cap = cv.CaptureFromCAM(-1)
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, 320);
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, 240);
+            # hunt can
+            while True:
+                image = cv.QueryFrame(cap)
+                rect = dancanfind.find_can(dancanfind.INDIGO_LASER, image)
+                print rect
+                if rect:
+                    dir1, dir2 = 1, 1
+                    pwm1, pwm2 = 50, 50
+                    x = rect[0] + rect[2] / 2
+                    h = 320 / 2.0
+                    if x > h:
+                        m = int((x - h) / h * 50)
+                        pwm1 += m
+                        pwm2 -= m
+                    else:
+                        m = int((h - x) / h * 50)
+                        pwm2 += m
+                        pwm1 -= m
+                else:
+                    dir1, dir2, pwm1, pwm2 = 0, 0, 0, 0
+                print "set motors", dir1, pwm1, dir2, pwm2
+                # create set_motor packet
+                buf, buf_size = create_teensy_set_motor_packet(chr(dir1), chr(pwm1), chr(dir2), chr(pwm2))
+                # write to teensy
+                write_teensy(dev, buf, buf_size)
+
         # close hid
         hidapi.hid_close(dev)
