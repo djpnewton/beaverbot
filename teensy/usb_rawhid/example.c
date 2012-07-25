@@ -231,11 +231,12 @@ void do_beep(struct beep_t* beep)
     cli(); // disable interrupts
 
     DDRC = 3;
-    while (beep->duration > 0)
+    int duration = beep->duration;
+    while (duration > 0)
     {
-        if (beep->duration % beep->freq == 0)
+        if (duration % beep->freq == 0)
             PORTC ^= 1;
-        beep->duration--;
+        duration--;
     }
 
     sei(); // enable interrupts
@@ -260,6 +261,7 @@ enum program_t
     PROGRAM_NULL,
     PROGRAM_CALIBRATE_TABLE_SENSORS,
     PROGRAM_REPORT_SENSORS,
+    PROGRAM_REPORT_SENSORS_WITH_BEEP,
     PROGRAM_STAY_ON_TABLE,
     PROGRAM_FORWARD,
     PROGRAM_BACK,
@@ -357,6 +359,7 @@ void step_program(struct kowhai_protocol_server_t* server)
             teensy.program = PROGRAM_NULL;
             break;
         case PROGRAM_REPORT_SENSORS:
+        case PROGRAM_REPORT_SENSORS_WITH_BEEP:
             // send table sensor events
             for (i = 0; i < TABLE_SENSOR_COUNT; i++)
             {
@@ -367,6 +370,14 @@ void step_program(struct kowhai_protocol_server_t* server)
                         teensy.sensors[i].triggered = 0;
                         struct table_sensor_event_t event = { i, 0, teensy.sensors[i].value };
                         send_sensor_event(server, &event);
+                        if (teensy.program == PROGRAM_REPORT_SENSORS_WITH_BEEP)
+                        {
+                            struct beep_t beep = { 10 + 10 * i, 1000 };
+                            do_beep(&beep);
+                            struct beep_t wait = { 0, 500 };
+                            do_beep(&wait);
+                            do_beep(&beep);
+                        }
                     }
                 }
                 else
@@ -376,6 +387,11 @@ void step_program(struct kowhai_protocol_server_t* server)
                         teensy.sensors[i].triggered = 1;
                         struct table_sensor_event_t event = { i, 1, teensy.sensors[i].value };
                         send_sensor_event(server, &event);
+                        if (teensy.program == PROGRAM_REPORT_SENSORS_WITH_BEEP)
+                        {
+                            struct beep_t beep = { 10 + 10 * i, 1000 };
+                            do_beep(&beep);
+                        }
                     }
                 }
             }
