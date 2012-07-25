@@ -28,6 +28,9 @@ namespace KowhaiSymbols
             "MotorSet",
             "Motor",
             "Direction",
+            "Beep",
+            "Frequency",
+            "Duration",
         };
         public enum Constants
         {
@@ -55,6 +58,9 @@ namespace KowhaiSymbols
             MotorSet,
             Motor,
             Direction,
+            Beep,
+            Frequency,
+            Duration,
         };
     }
 }

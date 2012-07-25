@@ -17,7 +17,7 @@ def find_teensy():
         print "Usage Page:", hex(devinfo.contents.usage_page)
         print "Usage:     ", hex(devinfo.contents.usage)
         print
-        #TEMP TODO (linux problem??)
+        #TEMP TODO (linux problem with hidapi and hidraw)
         if 1 or (devinfo.contents.usage_page == 0xFF00 and devinfo.contents.usage == 0x100):
             print "Found device"
             path = devinfo.contents.path
@@ -48,7 +48,7 @@ def create_teensy_program_packet(program):
     prot.payload.spec.data.symbols.array_ = symbols_program
     prot.payload.spec.data.memory.offset = 0
     prot.payload.spec.data.memory.size = 1
-    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(program)), ctypes.c_void_p)
+    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(chr(program))), ctypes.c_void_p)
     bytes_required = ctypes.c_int()
     res = create(buf, buf_size, prot, bytes_required)
     return buf, buf_size
@@ -62,7 +62,24 @@ def create_teensy_set_motor_packet(direction1, pwm1, direction2, pwm2):
     prot.header.id_ = 21 # tree_id SYM_SET_MOTOR
     prot.payload.spec.function_call.offset = 0
     prot.payload.spec.function_call.size = 4
-    string = direction1 + pwm1 + direction2 + pwm2
+    string = chr(direction1) + chr(pwm1) + chr(direction2) + chr(pwm2)
+    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(string)), ctypes.c_void_p)
+    bytes_required = ctypes.c_int()
+    res = create(buf, buf_size, prot, bytes_required)
+    return buf, buf_size
+
+def create_teensy_beep_packet(freq, duration):
+    # create packet
+    buf_size = TEENSY_REPORT_SIZE - 1
+    buf = ctypes.create_string_buffer("\x00" * buf_size)
+    prot = kowhai_protocol_t()
+    prot.header.command = KOW_CMD_CALL_FUNCTION
+    prot.header.id_ = 24 # tree_id SYM_BEEP
+    prot.payload.spec.function_call.offset = 0
+    prot.payload.spec.function_call.size = 4
+    string = chr(freq & 0x00ff) + chr(freq >> 8) + chr(duration & 0x00ff) + chr(duration >> 8)
+    for s in string:
+        print  ord(s)
     prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(string)), ctypes.c_void_p)
     bytes_required = ctypes.c_int()
     res = create(buf, buf_size, prot, bytes_required)
@@ -75,25 +92,33 @@ if __name__ == "__main__":
     dir2 = None
     pwm1 = None
     pwm2 = None
+    freq = None
+    duration = None
     can_chase = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:c", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c", ["program="])
     for o, a in opts:
         if o == '-p':
-            program = chr(int(a))
+            program = int(a)
             print "program:", program
         elif o == '-d':
-            dir1 = chr(int(a))
+            dir1 = int(a)
             print "dir1", dir1
         elif o == '-D':
-            dir2 = chr(int(a))
+            dir2 = int(a)
             print "dir2", dir2
         elif o == '-s':
-            pwm1 = chr(int(a))
+            pwm1 = int(a)
             print "pwm1", pwm1
         elif o == '-S':
-            pwm2 = chr(int(a))
+            pwm2 = int(a)
             print "pwm2", pwm2
+        elif o == '-f':
+            freq = int(a)
+            print "freq", freq
+        elif o == '-t':
+            duration = int(a)
+            print "duration", duration
         elif o == '-c':
             can_chase = True
             print "can_chase"
@@ -103,16 +128,22 @@ if __name__ == "__main__":
     if path:
         # open hid
         dev = hidapi.hid_open_path(path)
-        if program:
+        if program != None:
             print "set program", program
             # create write program packet
             buf, buf_size = create_teensy_program_packet(program)
             # write to teensy
             write_teensy(dev, buf, buf_size)
-        if dir1:
-            print "set motors", ord(dir1), ord(pwm1), ord(dir2), ord(pwm2)
+        if dir1 != None:
+            print "set motors", dir1, pwm1, dir2, pwm2
             # create set_motor packet
             buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
+            # write to teensy
+            write_teensy(dev, buf, buf_size)
+        if freq != None:
+            print "beep", freq, duration
+            # create beep packet
+            buf, buf_size = create_teensy_beep_packet(freq, duration)
             # write to teensy
             write_teensy(dev, buf, buf_size)
         if can_chase:
@@ -144,7 +175,7 @@ if __name__ == "__main__":
                     dir1, dir2, pwm1, pwm2 = 0, 0, 0, 0
                 print "set motors", dir1, pwm1, dir2, pwm2
                 # create set_motor packet
-                buf, buf_size = create_teensy_set_motor_packet(chr(dir1), chr(pwm1), chr(dir2), chr(pwm2))
+                buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
                 # write to teensy
                 write_teensy(dev, buf, buf_size)
 
