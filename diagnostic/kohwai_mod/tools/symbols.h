@@ -26,6 +26,9 @@ char* symbols[] = {
 	"MotorSet",
 	"Motor",
 	"Direction",
+	"Beep",
+	"Frequency",
+	"Duration",
 };
 
 #define SYM_TEENSY		0
@@ -52,5 +55,8 @@ char* symbols[] = {
 #define SYM_MOTORSET		21
 #define SYM_MOTOR		22
 #define SYM_DIRECTION		23
+#define SYM_BEEP		24
+#define SYM_FREQUENCY		25
+#define SYM_DURATION		26
 
 #endif

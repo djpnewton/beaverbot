@@ -28,4 +28,6 @@ Motor
 Direction
 Value
 
-
+Beep
+Frequency
+Duration
