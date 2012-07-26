@@ -8,7 +8,7 @@ RED = 0
 ADAPT = 1
 INDIGO_LASER = 2
 
-def find_can(mode, image):
+def find_can(mode, image, show_images=False, dilate_and_erode=False):
     # create image buffers
     size = image.width, image.height
     if mode == RED or mode == INDIGO_LASER:
@@ -29,35 +29,40 @@ def find_can(mode, image):
             # create some color stuff
             hsv_min = cv.Scalar(120, 50, 50, 0);
             hsv_max = cv.Scalar(160, 255, 255, 0);
-            hsv_min2 = cv.Scalar(150, 100, 100, 100);
-            hsv_max2 = cv.Scalar(151, 101, 101, 101);
     elif mode == ADAPT:
         bw = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
         thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
         dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
 
     # show image
-    cv.ShowImage('cam', image)
+    if show_images:
+        cv.ShowImage('cam', image)
 
     if mode == RED or mode == INDIGO_LASER:
         # threshold based on HSV values
         cv.CvtColor(image, hsv_frame, cv.CV_BGR2HSV)
         cv.InRangeS(hsv_frame, hsv_min, hsv_max, thresholded)
-        cv.InRangeS(hsv_frame, hsv_min2, hsv_max2, thresholded2)
-        cv.Or(thresholded, thresholded2, thresholded)
+        if mode == RED:
+            cv.InRangeS(hsv_frame, hsv_min2, hsv_max2, thresholded2)
+            cv.Or(thresholded, thresholded2, thresholded)
 
         # show thresholded image
-        cv.ShowImage('thresh', thresholded)
+        if show_images:
+            cv.ShowImage('thresh', thresholded)
 
         # dilate and erode to try to get a solid region of interest
-        cv.Dilate(thresholded, dilate_eroded, None, 20)
-        cv.Erode(dilate_eroded, dilate_eroded, None, 20)
+        if dilate_and_erode:
+            cv.Dilate(thresholded, dilate_eroded, None, 20)
+            cv.Erode(dilate_eroded, dilate_eroded, None, 20)
 
-        # smooth image
-        #cv.Smooth(dilate_eroded, dilate_eroded, cv.CV_GAUSSIAN, 9, 9)
+            # smooth image
+            #cv.Smooth(dilate_eroded, dilate_eroded, cv.CV_GAUSSIAN, 9, 9)
 
-        # show dilate and eroded image
-        cv.ShowImage('dilate and erode', dilate_eroded)
+            # show dilate and eroded image
+            if show_images:
+                cv.ShowImage('dilate and erode', dilate_eroded)
+        else:
+            dilate_eroded = thresholded
 
         # hough lines 
         #storage = cv.CreateMemStorage(0)
@@ -70,7 +75,8 @@ def find_can(mode, image):
         #    pt1 = (cv.Round(x0 + 1000*(-b)), cv.Round(y0 + 1000*(a)))
         #    pt2 = (cv.Round(x0 - 1000*(-b)), cv.Round(y0 - 1000*(a)))
         #    cv.Line(image, pt1, pt2, cv.RGB(255, 0, 0), 3, 8)
-        #cv.ShowImage('lines', image)
+        #if show_images:
+        #    cv.ShowImage('lines', image)
 
         final = dilate_eroded
 
@@ -80,13 +86,15 @@ def find_can(mode, image):
         cv.AdaptiveThreshold(bw, thresholded, 255, cv.CV_ADAPTIVE_THRESH_GAUSSIAN_C, cv.CV_THRESH_BINARY, 31, -10)
 
         # show thresholded image
-        cv.ShowImage('thresh', thresholded)
+        if show_images:
+            cv.ShowImage('thresh', thresholded)
 
         # smooth image
         cv.Smooth(thresholded, thresholded, cv.CV_GAUSSIAN, 9, 9)
 
         # show smoothed
-        cv.ShowImage('smoothed', thresholded)
+        if show_images:
+            cv.ShowImage('smoothed', thresholded)
 
         final = thresholded
 
@@ -105,7 +113,8 @@ def find_can(mode, image):
     if biggest_contours:
         rect = cv.BoundingRect(biggest_contours)
         cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
-        cv.ShowImage('contours', image)
+        if show_images:
+            cv.ShowImage('contours', image)
         return rect
     return None
 
@@ -126,7 +135,7 @@ if __name__ == "__main__":
         # load image
         image = cv.LoadImage(f, cv.CV_LOAD_IMAGE_COLOR)
         # process image
-        find_can(mode, image);
+        find_can(mode, image, show_images=True, dilate_and_erode=True);
         # wait for key press before showing next image
         key = cv.WaitKey(-1)
         # if escape pressed then exit

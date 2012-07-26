@@ -78,8 +78,6 @@ def create_teensy_beep_packet(freq, duration):
     prot.payload.spec.function_call.offset = 0
     prot.payload.spec.function_call.size = 4
     string = chr(freq & 0x00ff) + chr(freq >> 8) + chr(duration & 0x00ff) + chr(duration >> 8)
-    for s in string:
-        print  ord(s)
     prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(string)), ctypes.c_void_p)
     bytes_required = ctypes.c_int()
     res = create(buf, buf_size, prot, bytes_required)
@@ -95,8 +93,9 @@ if __name__ == "__main__":
     freq = None
     duration = None
     can_chase = None
+    can_chase_debug = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:", ["program="])
     for o, a in opts:
         if o == '-p':
             program = int(a)
@@ -121,6 +120,7 @@ if __name__ == "__main__":
             print "duration", duration
         elif o == '-c':
             can_chase = True
+            can_chase_debug = int(a)
             print "can_chase"
 
     # open teensy hid
@@ -151,31 +151,41 @@ if __name__ == "__main__":
             import dancanfind # need PYTHONPATH set for this
             # get cam and set the width and height
             cap = cv.CaptureFromCAM(-1)
-            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, 320);
-            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, 240);
+            width, height = 320, 240
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, width);
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
             # hunt can
+            duty_cycle = 20
             while True:
                 image = cv.QueryFrame(cap)
                 rect = dancanfind.find_can(dancanfind.INDIGO_LASER, image)
-                print rect
                 if rect:
                     dir1, dir2 = 1, 1
-                    pwm1, pwm2 = 50, 50
+                    pwm1, pwm2 = duty_cycle, duty_cycle
                     x = rect[0] + rect[2] / 2
-                    h = 320 / 2.0
+                    h = width / 2.0
                     if x > h:
-                        m = int((x - h) / h * 50)
-                        pwm1 += m
-                        pwm2 -= m
-                    else:
-                        m = int((h - x) / h * 50)
+                        m = int((x - h) / h * duty_cycle)
                         pwm2 += m
                         pwm1 -= m
+                    else:
+                        m = int((h - x) / h * duty_cycle)
+                        pwm1 += m
+                        pwm2 -= m
                 else:
                     dir1, dir2, pwm1, pwm2 = 0, 0, 0, 0
-                print "set motors", dir1, pwm1, dir2, pwm2
-                # create set_motor packet
-                buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
+                if can_chase_debug == 0:
+                    # create set_motor packet
+                    #print "set motors", dir1, pwm1, dir2, pwm2
+                    buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
+                else:
+                    print rect
+                    if not rect:
+                        freq = 1
+                    else:
+                        freq = rect[0] + rect[2] / 2
+                    # create beep packet
+                    buf, buf_size = create_teensy_beep_packet(freq, 1000)
                 # write to teensy
                 write_teensy(dev, buf, buf_size)
 

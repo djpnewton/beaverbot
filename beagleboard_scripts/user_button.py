@@ -7,10 +7,27 @@ counter = 0
 
 def start_controller():
     global counter
-    print "start controller %d!" % (counter - 1)
-    os.system("%s -p%d" % (CONTROLLER_PATH, counter - 1))
-
+    if counter == 10:
+        # can chase
+        print "can chase!"
+        os.system("%s -c0" % (CONTROLLER_PATH))
+    elif counter == 11:
+        # can chase
+        print "can chase debug!"
+        os.system("%s -c1" % (CONTROLLER_PATH))
+    else:
+        # teensy program
+        print "teensy program %d!" % (counter - 1)
+        os.system("%s -p%d" % (CONTROLLER_PATH, counter - 1))
     counter = 0
+
+def kill_controller():
+    p = os.popen(r"ps -ef | grep -v 'grep' | grep teensy/control | sed 's/root\s*\([0-9]*\)\s.*/\1/'")
+    s = p.read()
+    p.close()
+    if s:
+        print "kill process:", s
+        os.system("kill %s" % s)
 
 def read_button():
     import threading
@@ -26,6 +43,7 @@ def read_button():
     while event:
         (time1, time2, type, code, value) = struct.unpack(inputEventFormat, event)
         if type == 1 and code == 276 and value == 1:
+            kill_controller()
             global counter
             counter += 1
             print "user button", counter
@@ -38,4 +56,8 @@ def read_button():
     file.close()
 
 if __name__ == "__main__":
+    # alert that we are ready to go
+    for i in range(5):
+        os.system("%s -f%d -t%d" % (CONTROLLER_PATH, 200 - i * 10, 10000))
+    # start reading the button
     read_button()
