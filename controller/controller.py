@@ -2,6 +2,7 @@ from kowhai import *
 from kowhai_protocol import *
 import hidapi
 
+import time
 import ctypes
 
 TEENSY_REPORT_SIZE = 64
@@ -94,8 +95,9 @@ if __name__ == "__main__":
     duration = None
     can_chase = None
     can_chase_debug = None
+    save_image = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:i", ["program="])
     for o, a in opts:
         if o == '-p':
             program = int(a)
@@ -122,6 +124,9 @@ if __name__ == "__main__":
             can_chase = True
             can_chase_debug = int(a)
             print "can_chase"
+        elif o == '-i':
+            save_image = True
+            print "save_image"
 
     # open teensy hid
     path = find_teensy()
@@ -151,14 +156,16 @@ if __name__ == "__main__":
             import dancanfind # need PYTHONPATH set for this
             # get cam and set the width and height
             cap = cv.CaptureFromCAM(-1)
-            width, height = 320, 240
+            width, height = 160, 120
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, width);
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
             # hunt can
             duty_cycle = 20
             image_buffers = None
             while True:
+                # get webcam image
                 image = cv.QueryFrame(cap)
+                # find can
                 rect, image_buffers = dancanfind.find_can(dancanfind.INDIGO_LASER, image, image_buffers=image_buffers)
                 if rect:
                     dir1, dir2 = 1, 1
@@ -180,7 +187,7 @@ if __name__ == "__main__":
                     #print "set motors", dir1, pwm1, dir2, pwm2
                     buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
                 else:
-                    print rect
+                    print time.time(), rect
                     if not rect:
                         freq = 1
                     else:
@@ -189,6 +196,15 @@ if __name__ == "__main__":
                     buf, buf_size = create_teensy_beep_packet(freq, 1000)
                 # write to teensy
                 write_teensy(dev, buf, buf_size)
+        if save_image:
+            import cv
+            # get cam and set the width and height
+            cap = cv.CaptureFromCAM(-1)
+            width, height = 320, 240
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, width);
+            cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
+            image = cv.QueryFrame(cap)
+            cv.SaveImage("test.jpg", image)
 
         # close hid
         hidapi.hid_close(dev)
