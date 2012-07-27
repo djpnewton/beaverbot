@@ -8,14 +8,23 @@ RED = 0
 ADAPT = 1
 INDIGO_LASER = 2
 
-def find_can(mode, image, show_images=False, dilate_and_erode=False):
+def find_can(mode, image, show_images=False, dilate_and_erode=False, image_buffers=None):
     # create image buffers
     size = image.width, image.height
     if mode == RED or mode == INDIGO_LASER:
-        hsv_frame = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
-        thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
-        thresholded2 = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
-        dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+        if image_buffers:
+            # reuse image buffers
+            hsv_frame, thresholded, thresholded2, dilate_eroded = image_buffers
+        else:
+            # create new image buffers
+            hsv_frame = cv.CreateImage(size, cv.IPL_DEPTH_8U, 3)
+            thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            if mode == RED:
+                thresholded2 = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            else:
+                thresholded2 = None
+            dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            image_buffers = (hsv_frame, thresholded, thresholded2, dilate_eroded)
 
         if mode == RED:
             # create some color stuff
@@ -30,9 +39,13 @@ def find_can(mode, image, show_images=False, dilate_and_erode=False):
             hsv_min = cv.Scalar(120, 50, 50, 0);
             hsv_max = cv.Scalar(160, 255, 255, 0);
     elif mode == ADAPT:
-        bw = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
-        thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
-        dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+        if image_buffers:
+            bw, thresholded, dilate_eroded = image_buffers
+        else:
+            bw = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            thresholded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            dilate_eroded = cv.CreateImage(size, cv.IPL_DEPTH_8U, 1)
+            image_buffers = (bw, thresholded, dilate_eroded)
 
     # show image
     if show_images:
@@ -115,8 +128,8 @@ def find_can(mode, image, show_images=False, dilate_and_erode=False):
         cv.Rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), cv.RGB(0, 255, 0))
         if show_images:
             cv.ShowImage('contours', image)
-        return rect
-    return None
+        return rect, image_buffers
+    return None, image_buffers
 
 if __name__ == "__main__":
 

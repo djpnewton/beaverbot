@@ -156,9 +156,10 @@ if __name__ == "__main__":
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
             # hunt can
             duty_cycle = 20
+            image_buffers = None
             while True:
                 image = cv.QueryFrame(cap)
-                rect = dancanfind.find_can(dancanfind.INDIGO_LASER, image)
+                rect, image_buffers = dancanfind.find_can(dancanfind.INDIGO_LASER, image, image_buffers=image_buffers)
                 if rect:
                     dir1, dir2 = 1, 1
                     pwm1, pwm2 = duty_cycle, duty_cycle
