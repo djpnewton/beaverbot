@@ -31,6 +31,11 @@ namespace KowhaiSymbols
             "Beep",
             "Frequency",
             "Duration",
+            "Guidance",
+            "X",
+            "Y",
+            "WindowWidth",
+            "WindowHeight",
         };
         public enum Constants
         {
@@ -61,6 +66,11 @@ namespace KowhaiSymbols
             Beep,
             Frequency,
             Duration,
+            Guidance,
+            X,
+            Y,
+            WindowWidth,
+            WindowHeight,
         };
     }
 }

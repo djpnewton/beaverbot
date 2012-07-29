@@ -107,6 +107,16 @@ struct kowhai_node_t beep_descriptor[] =
     { KOW_BRANCH_END,       SYM_BEEP,           1,                0 },
 };
 
+struct kowhai_node_t guidance_descriptor[] =
+{
+    { KOW_BRANCH_START,     SYM_GUIDANCE,       1,                0 },
+    { KOW_UINT16,           SYM_X,              1,                0 },
+    { KOW_UINT16,           SYM_X,              1,                0 },
+    { KOW_UINT16,           SYM_WINDOWWIDTH,    1,                0 },
+    { KOW_UINT16,           SYM_WINDOWHEIGHT,   1,                0 },
+    { KOW_BRANCH_END,       SYM_GUIDANCE,       1,                0 },
+};
+
 //
 // kowhai tree structs
 //
@@ -174,9 +184,16 @@ struct beep_t
     uint16_t duration;
 };
 
+struct guidance_t
+{
+    uint16_t x, y;
+    uint16_t window_width, window_height;
+};
+
 struct teensy_t teensy = {0};
 struct motor_set_t motor_set = {0};
 struct beep_t beep = {0};
+struct guidance_t guidance = {0};
 
 #define WRITE_PORT(port_settings, _ddr, _port)  \
     if (port_settings.ddr != _ddr)              \
@@ -251,6 +268,23 @@ int function_called(pkowhai_protocol_server_t server, void* param, uint16_t func
             return 1;
         case SYM_BEEP:
             do_beep(&beep);
+            return 1;
+        case SYM_GUIDANCE:
+            // todo
+            {
+                struct beep_t beep;
+                struct motor_set_t motor_set1 = {1, 20, 1, 20};
+                struct motor_set_t motor_set2= {0, 0, 0, 0};
+                motor_set_(&motor_set1);
+                beep.freq = 10;
+                beep.duration = 500;
+                do_beep(&beep);
+                beep.freq = 0;
+                do_beep(&beep);
+                beep.freq = 10;
+                do_beep(&beep);
+                motor_set_(&motor_set2);
+            }
             return 1;
     }
     return 0;
@@ -457,14 +491,15 @@ int main(void)
 
 
     // init kowhai server
-    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT, SYM_MOTORSET, SYM_BEEP};
-    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor, motor_set_descriptor, beep_descriptor};
+    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT, SYM_MOTORSET, SYM_BEEP, SYM_GUIDANCE};
+    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor, motor_set_descriptor, beep_descriptor, guidance_descriptor};
     size_t tree_descriptor_sizes[COUNT_OF(tree_descriptors)];
-    void* tree_data_buffers[] = {&teensy, NULL, &motor_set, &beep};
-    uint16_t function_list[] = {SYM_MOTORSET, SYM_BEEP};
+    void* tree_data_buffers[] = {&teensy, NULL, &motor_set, &beep, &guidance};
+    uint16_t function_list[] = {SYM_MOTORSET, SYM_BEEP, SYM_GUIDANCE};
     struct kowhai_protocol_function_details_t function_list_details[] = {
         {SYM_MOTORSET, KOW_UNDEFINED_SYMBOL},
         {SYM_BEEP, KOW_UNDEFINED_SYMBOL},
+        {SYM_GUIDANCE, KOW_UNDEFINED_SYMBOL},
     };
     kowhai_server_init_tree_descriptor_sizes(tree_descriptors, tree_descriptor_sizes, COUNT_OF(tree_descriptors));
     struct kowhai_protocol_server_t server;

@@ -29,6 +29,11 @@ char* symbols[] = {
 	"Beep",
 	"Frequency",
 	"Duration",
+	"Guidance",
+	"X",
+	"Y",
+	"WindowWidth",
+	"WindowHeight",
 };
 
 #define SYM_TEENSY		0
@@ -58,5 +63,10 @@ char* symbols[] = {
 #define SYM_BEEP		24
 #define SYM_FREQUENCY		25
 #define SYM_DURATION		26
+#define SYM_GUIDANCE		27
+#define SYM_X		28
+#define SYM_Y		29
+#define SYM_WINDOWWIDTH		30
+#define SYM_WINDOWHEIGHT		31
 
 #endif

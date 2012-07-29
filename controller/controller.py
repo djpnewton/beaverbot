@@ -69,6 +69,22 @@ def create_teensy_set_motor_packet(direction1, pwm1, direction2, pwm2):
     res = create(buf, buf_size, prot, bytes_required)
     return buf, buf_size
 
+def create_teensy_set_motor_packet(x, y, window_width, window_height):
+    # create packet
+    buf_size = TEENSY_REPORT_SIZE - 1
+    buf = ctypes.create_string_buffer("\x00" * buf_size)
+    prot = kowhai_protocol_t()
+    prot.header.command = KOW_CMD_CALL_FUNCTION
+    prot.header.id_ = 27 # tree_id SYM_GUIDANCE
+    prot.payload.spec.function_call.offset = 0
+    prot.payload.spec.function_call.size = 8
+    string = chr(x & 0x00ff) + chr(x >> 8) + chr(y & 0x00ff) + chr(y >> 8)
+    string += chr(window_width & 0x00ff) + chr(window_width >> 8) + chr(window_height & 0x00ff) + chr(window_height >> 8)
+    prot.payload.buffer_ = ctypes.cast(ctypes.pointer(ctypes.create_string_buffer(string)), ctypes.c_void_p)
+    bytes_required = ctypes.c_int()
+    res = create(buf, buf_size, prot, bytes_required)
+    return buf, buf_size
+
 def create_teensy_beep_packet(freq, duration):
     # create packet
     buf_size = TEENSY_REPORT_SIZE - 1
@@ -95,9 +111,10 @@ if __name__ == "__main__":
     duration = None
     can_chase = None
     can_chase_debug = None
+    can_guide = None
     save_image = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:i", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:gi", ["program="])
     for o, a in opts:
         if o == '-p':
             program = int(a)
@@ -124,6 +141,8 @@ if __name__ == "__main__":
             can_chase = True
             can_chase_debug = int(a)
             print "can_chase"
+        elif o == 'g':
+            can_guide = True
         elif o == '-i':
             save_image = True
             print "save_image"
@@ -151,7 +170,7 @@ if __name__ == "__main__":
             buf, buf_size = create_teensy_beep_packet(freq, duration)
             # write to teensy
             write_teensy(dev, buf, buf_size)
-        if can_chase:
+        if can_chase or can_guide:
             import cv
             import dancanfind # need PYTHONPATH set for this
             # get cam and set the width and height
@@ -171,6 +190,7 @@ if __name__ == "__main__":
                     dir1, dir2 = 1, 1
                     pwm1, pwm2 = duty_cycle, duty_cycle
                     x = rect[0] + rect[2] / 2
+                    y = rect[1] + rect[3] / 2
                     h = width / 2.0
                     if x > h:
                         m = int((x - h) / h * duty_cycle)
@@ -182,7 +202,10 @@ if __name__ == "__main__":
                         pwm2 -= m
                 else:
                     dir1, dir2, pwm1, pwm2 = 0, 0, 0, 0
-                if can_chase_debug == 0:
+                if can_guide:
+                    # create guidance packet
+                    buf, buf_size = create_teensy_guidance_packet(x, y, width, height)
+                elif can_chase_debug == 0:
                     # create set_motor packet
                     #print "set motors", dir1, pwm1, dir2, pwm2
                     buf, buf_size = create_teensy_set_motor_packet(dir1, pwm1, dir2, pwm2)
