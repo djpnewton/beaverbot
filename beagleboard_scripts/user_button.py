@@ -15,6 +15,10 @@ def start_controller():
         # can chase
         print "can chase debug!"
         os.system("%s -c1" % (CONTROLLER_PATH))
+    elif counter == 12:
+        # can chase
+        print "can guidance!"
+        os.system("%s -g" % (CONTROLLER_PATH))
     else:
         # teensy program
         print "teensy program %d!" % (counter - 1)

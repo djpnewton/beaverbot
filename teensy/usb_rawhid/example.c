@@ -28,6 +28,7 @@
 #include "usb_rawhid.h"
 #include "analog.h"
 #include "kowhai/kowhai_protocol_server.h"
+#include "can_search.h"
 
 #define LED_ON      (PORTD |= (1<<6))
 #define LED_OFF     (PORTD &= ~(1<<6))
@@ -111,7 +112,7 @@ struct kowhai_node_t guidance_descriptor[] =
 {
     { KOW_BRANCH_START,     SYM_GUIDANCE,       1,                0 },
     { KOW_UINT16,           SYM_X,              1,                0 },
-    { KOW_UINT16,           SYM_X,              1,                0 },
+    { KOW_UINT16,           SYM_Y,              1,                0 },
     { KOW_UINT16,           SYM_WINDOWWIDTH,    1,                0 },
     { KOW_UINT16,           SYM_WINDOWHEIGHT,   1,                0 },
     { KOW_BRANCH_END,       SYM_GUIDANCE,       1,                0 },
@@ -191,7 +192,7 @@ struct guidance_t
 };
 
 struct teensy_t teensy = {0};
-struct motor_set_t motor_set = {0};
+struct motor_set_t motor_set = {};
 struct beep_t beep = {0};
 struct guidance_t guidance = {0};
 
@@ -259,6 +260,20 @@ void do_beep(struct beep_t* beep)
     sei(); // enable interrupts
 }
 
+enum program_t
+{
+    PROGRAM_NULL,
+    PROGRAM_CALIBRATE_TABLE_SENSORS,
+    PROGRAM_REPORT_SENSORS,
+    PROGRAM_REPORT_SENSORS_WITH_BEEP,
+    PROGRAM_STAY_ON_TABLE,
+    PROGRAM_CAN_SEARCH_INIT,
+    PROGRAM_BOOTLOADER,
+
+
+    PROGRAM_CAN_SEARCH = 100,
+};
+
 int function_called(pkowhai_protocol_server_t server, void* param, uint16_t function_id)
 {
     switch (function_id)
@@ -270,42 +285,30 @@ int function_called(pkowhai_protocol_server_t server, void* param, uint16_t func
             do_beep(&beep);
             return 1;
         case SYM_GUIDANCE:
-            // todo
+            if (teensy.program == PROGRAM_CAN_SEARCH)
             {
-                struct beep_t beep;
-                struct motor_set_t motor_set1 = {1, 20, 1, 20};
-                struct motor_set_t motor_set2= {0, 0, 0, 0};
-                motor_set_(&motor_set1);
-                beep.freq = 10;
-                beep.duration = 500;
-                do_beep(&beep);
-                beep.freq = 0;
-                do_beep(&beep);
-                beep.freq = 10;
-                do_beep(&beep);
-                motor_set_(&motor_set2);
+                can_search_signal(SIG_CAN_SPOTTED,
+                        guidance.x / (float)guidance.window_width,
+                        guidance.y / (float)guidance.window_height);
             }
             return 1;
     }
     return 0;
 }
 
-enum program_t
-{
-    PROGRAM_NULL,
-    PROGRAM_CALIBRATE_TABLE_SENSORS,
-    PROGRAM_REPORT_SENSORS,
-    PROGRAM_REPORT_SENSORS_WITH_BEEP,
-    PROGRAM_STAY_ON_TABLE,
-    PROGRAM_FORWARD,
-    PROGRAM_BACK,
-    PROGRAM_LEFT,
-    PROGRAM_RIGHT,
-};
-
 void send_sensor_event(struct kowhai_protocol_server_t* server, struct table_sensor_event_t* event)
 {
     kowhai_server_process_event(server, SYM_TABLESENSOREVENT, event, sizeof(struct table_sensor_event_t));
+}
+
+void motor_set__(uint8_t direction1, uint8_t value1, uint8_t direction2, uint8_t value2)
+{
+    struct motor_set_t ms;
+    ms.motor[0].direction = direction1;
+    ms.motor[0].value = value1;
+    ms.motor[1].direction = direction2;
+    ms.motor[1].value = value2;
+    motor_set_(&ms);
 }
 
 void motor_set_(struct motor_set_t* ms)
@@ -366,9 +369,76 @@ void stay_on_table(void)
 #define ADC_MAX 1024
 #define ADC_HIST 10 // hysteresis
 #define TRIGGER_RATIO (0.75f)
-void step_program(struct kowhai_protocol_server_t* server)
+void calibrate_sensors(void)
+{
+    teensy.sensors[0].trigger = teensy.sensors[0].value + (ADC_MAX - teensy.sensors[0].value) * TRIGGER_RATIO;
+    teensy.sensors[1].trigger = teensy.sensors[1].value + (ADC_MAX - teensy.sensors[1].value) * TRIGGER_RATIO;
+    teensy.sensors[2].trigger = teensy.sensors[2].value + (ADC_MAX - teensy.sensors[2].value) * TRIGGER_RATIO;
+    teensy.sensors[3].trigger = teensy.sensors[3].value + (ADC_MAX - teensy.sensors[3].value) * TRIGGER_RATIO;
+}
+int check_sensors(void)
 {
     int i;
+    for (i = 0; i < TABLE_SENSOR_COUNT; i++)
+    {
+        if (teensy.sensors[i].triggered)
+        {
+            if (teensy.sensors[i].value < teensy.sensors[i].trigger - ADC_HIST)
+            {
+                teensy.sensors[i].triggered = 0;
+                return i;
+            }
+        }
+        else
+        {
+            if (teensy.sensors[i].value > teensy.sensors[i].trigger + 50)
+            {
+                teensy.sensors[i].triggered = 1;
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+void bootloader(void)
+{
+    cli();
+    // disable watchdog, if enabled
+    // disable all peripherals
+    UDCON = 1;
+    USBCON = (1<<FRZCLK);  // disable USB
+    UCSR1B = 0;
+    _delay_ms(5);
+#if defined(__AVR_AT90USB162__)                // Teensy 1.0
+    EIMSK = 0; PCICR = 0; SPCR = 0; ACSR = 0; EECR = 0;
+    TIMSK0 = 0; TIMSK1 = 0; UCSR1B = 0;
+    DDRB = 0; DDRC = 0; DDRD = 0;
+    PORTB = 0; PORTC = 0; PORTD = 0;
+    asm volatile("jmp 0x3E00");
+#elif defined(__AVR_ATmega32U4__)              // Teensy 2.0
+    EIMSK = 0; PCICR = 0; SPCR = 0; ACSR = 0; EECR = 0; ADCSRA = 0;
+    TIMSK0 = 0; TIMSK1 = 0; TIMSK3 = 0; TIMSK4 = 0; UCSR1B = 0; TWCR = 0;
+    DDRB = 0; DDRC = 0; DDRD = 0; DDRE = 0; DDRF = 0; TWCR = 0;
+    PORTB = 0; PORTC = 0; PORTD = 0; PORTE = 0; PORTF = 0;
+    asm volatile("jmp 0x7E00");
+#elif defined(__AVR_AT90USB646__)              // Teensy++ 1.0
+    EIMSK = 0; PCICR = 0; SPCR = 0; ACSR = 0; EECR = 0; ADCSRA = 0;
+    TIMSK0 = 0; TIMSK1 = 0; TIMSK2 = 0; TIMSK3 = 0; UCSR1B = 0; TWCR = 0;
+    DDRA = 0; DDRB = 0; DDRC = 0; DDRD = 0; DDRE = 0; DDRF = 0;
+    PORTA = 0; PORTB = 0; PORTC = 0; PORTD = 0; PORTE = 0; PORTF = 0;
+    asm volatile("jmp 0xFC00");
+#elif defined(__AVR_AT90USB1286__)             // Teensy++ 2.0
+    EIMSK = 0; PCICR = 0; SPCR = 0; ACSR = 0; EECR = 0; ADCSRA = 0;
+    TIMSK0 = 0; TIMSK1 = 0; TIMSK2 = 0; TIMSK3 = 0; UCSR1B = 0; TWCR = 0;
+    DDRA = 0; DDRB = 0; DDRC = 0; DDRD = 0; DDRE = 0; DDRF = 0;
+    PORTA = 0; PORTB = 0; PORTC = 0; PORTD = 0; PORTE = 0; PORTF = 0;
+    asm volatile("jmp 0x1FC00");
+#endif 
+}
+
+void step_program(struct kowhai_protocol_server_t* server)
+{
     // get table sensor values
     teensy.sensors[0].value = teensy.adc.adc[7];
     teensy.sensors[1].value = teensy.adc.adc[6];
@@ -386,76 +456,65 @@ void step_program(struct kowhai_protocol_server_t* server)
     switch (teensy.program)
     {
         case PROGRAM_CALIBRATE_TABLE_SENSORS:
-            teensy.sensors[0].trigger = teensy.sensors[0].value + (ADC_MAX - teensy.sensors[0].value) * TRIGGER_RATIO;
-            teensy.sensors[1].trigger = teensy.sensors[1].value + (ADC_MAX - teensy.sensors[1].value) * TRIGGER_RATIO;
-            teensy.sensors[2].trigger = teensy.sensors[2].value + (ADC_MAX - teensy.sensors[2].value) * TRIGGER_RATIO;
-            teensy.sensors[3].trigger = teensy.sensors[3].value + (ADC_MAX - teensy.sensors[3].value) * TRIGGER_RATIO;
+            calibrate_sensors();
             teensy.program = PROGRAM_NULL;
             break;
         case PROGRAM_REPORT_SENSORS:
         case PROGRAM_REPORT_SENSORS_WITH_BEEP:
+        {
             // send table sensor events
-            for (i = 0; i < TABLE_SENSOR_COUNT; i++)
+            int i = check_sensors();
+            if (i != -1)
             {
-                if (teensy.sensors[i].triggered)
+                struct table_sensor_event_t event = { i, teensy.sensors[i].triggered, teensy.sensors[i].value };
+                send_sensor_event(server, &event);
+                if (teensy.program == PROGRAM_REPORT_SENSORS_WITH_BEEP)
                 {
-                    if (teensy.sensors[i].value < teensy.sensors[i].trigger - ADC_HIST)
+                    struct beep_t beep = { 10 + 10 * i, 1000 };
+                    do_beep(&beep);
+                    if (teensy.sensors[i].triggered)
                     {
-                        teensy.sensors[i].triggered = 0;
-                        struct table_sensor_event_t event = { i, 0, teensy.sensors[i].value };
-                        send_sensor_event(server, &event);
-                        if (teensy.program == PROGRAM_REPORT_SENSORS_WITH_BEEP)
-                        {
-                            struct beep_t beep = { 10 + 10 * i, 1000 };
-                            do_beep(&beep);
-                            struct beep_t wait = { 0, 500 };
-                            do_beep(&wait);
-                            do_beep(&beep);
-                        }
-                    }
-                }
-                else
-                {
-                    if (teensy.sensors[i].value > teensy.sensors[i].trigger + 50)
-                    {
-                        teensy.sensors[i].triggered = 1;
-                        struct table_sensor_event_t event = { i, 1, teensy.sensors[i].value };
-                        send_sensor_event(server, &event);
-                        if (teensy.program == PROGRAM_REPORT_SENSORS_WITH_BEEP)
-                        {
-                            struct beep_t beep = { 10 + 10 * i, 1000 };
-                            do_beep(&beep);
-                        }
+                        struct beep_t wait = { 0, 500 };
+                        do_beep(&wait);
+                        do_beep(&beep);
                     }
                 }
             }
             break;
+        }
         case PROGRAM_STAY_ON_TABLE:
             stay_on_table();
             break;
-        case PROGRAM_FORWARD:
-            // go forwards
-            PORTF = 18; 
-            OCR2A = 100;
-            OCR2B = 100;
+        case PROGRAM_CAN_SEARCH_INIT:
+            calibrate_sensors();
+            can_search_init(motor_set__);
+            teensy.program = PROGRAM_CAN_SEARCH;
             break;
-        case PROGRAM_BACK:
-            // go back
-            PORTF = 5; 
-            OCR2A = 35;
-            OCR2B = 35;
+        case PROGRAM_CAN_SEARCH:
+        {
+            int i = check_sensors();
+            if (i != -1)
+            {
+                switch (i)
+                {
+                    case 0:
+                        can_search_signal(SIG_FRONT_LEFT, teensy.sensors[i].triggered, 0);
+                        break;
+                    case 1:
+                        can_search_signal(SIG_FRONT_RIGHT, teensy.sensors[i].triggered, 0);
+                        break;
+                    case 2:
+                        can_search_signal(SIG_BACK_LEFT, teensy.sensors[i].triggered, 0);
+                        break;
+                    case 3:
+                        can_search_signal(SIG_BACK_RIGHT, teensy.sensors[i].triggered, 0);
+                        break;
+                }
+            }
             break;
-        case PROGRAM_LEFT:
-            // go left
-            PORTF = 10; 
-            OCR2A = 35;
-            OCR2B = 100;
-            break;
-        case PROGRAM_RIGHT:
-            // go right
-            PORTF = 10; 
-            OCR2A = 100;
-            OCR2B = 35;
+        }
+        case PROGRAM_BOOTLOADER:
+            bootloader();
             break;
     }
 }

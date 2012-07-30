@@ -69,7 +69,7 @@ def create_teensy_set_motor_packet(direction1, pwm1, direction2, pwm2):
     res = create(buf, buf_size, prot, bytes_required)
     return buf, buf_size
 
-def create_teensy_set_motor_packet(x, y, window_width, window_height):
+def create_teensy_guidance_packet(x, y, window_width, window_height):
     # create packet
     buf_size = TEENSY_REPORT_SIZE - 1
     buf = ctypes.create_string_buffer("\x00" * buf_size)
@@ -141,8 +141,9 @@ if __name__ == "__main__":
             can_chase = True
             can_chase_debug = int(a)
             print "can_chase"
-        elif o == 'g':
+        elif o == '-g':
             can_guide = True
+            print "can_guide"
         elif o == '-i':
             save_image = True
             print "save_image"
@@ -178,6 +179,10 @@ if __name__ == "__main__":
             width, height = 160, 120
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, width);
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
+            # set teensy program
+            buf, buf_size = create_teensy_program_packet(5) # can_search
+            # write to teensy
+            write_teensy(dev, buf, buf_size)
             # hunt can
             duty_cycle = 20
             image_buffers = None
@@ -204,7 +209,10 @@ if __name__ == "__main__":
                     dir1, dir2, pwm1, pwm2 = 0, 0, 0, 0
                 if can_guide:
                     # create guidance packet
-                    buf, buf_size = create_teensy_guidance_packet(x, y, width, height)
+                    if rect:
+                        buf, buf_size = create_teensy_guidance_packet(x, y, width, height)
+                    else:
+                        buf, buf_size = create_teensy_guidance_packet(0, 0, 0, 0)
                 elif can_chase_debug == 0:
                     # create set_motor packet
                     #print "set motors", dir1, pwm1, dir2, pwm2
