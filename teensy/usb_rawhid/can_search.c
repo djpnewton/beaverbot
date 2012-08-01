@@ -1,15 +1,19 @@
 #include "can_search.h"
 
-enum search_states_t g_current_state = ST_INIT;
+volatile enum search_states_t g_current_state = ST_INIT;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define REVERSE_TIMEOUT 3000
-#define SPIN_TIMEOUT 2000
+#define REVERSE_TIMEOUT 1000
+#define SPIN_TIMEOUT 750
+#define SEARCH_TIMEOUT 5000
+#define SCRAMBLE_TIMEOUT 500
 
-int g_reverse_time = -1;
-int g_spin_time = -1;
+volatile int g_reverse_time = -1;
+volatile int g_spin_time = -1;
+volatile int g_search_time = -1;
+volatile int g_scramble_time = -1;
 
-#define BASE_POWER 35
+#define BASE_POWER 40
 void set_motors_from_can_pos(float x, float y)
 {
     uint8_t value1 = BASE_POWER;
@@ -63,10 +67,14 @@ void search(enum state_signals_t signal, float p1, float p2)
     {
         case SIG_ENTRY:
             set_motors_forwards();
+            g_search_time = 0;
+            break;
+        case SIG_EXIT:
+            g_search_time = -1;
             break;
         case SIG_CAN_SPOTTED:
             set_motors_from_can_pos(p1, p2);
-            transition(ST_APPROACH);
+            g_search_time = 0;
             break;
         case SIG_FRONT_LEFT:
             if ((int)p1)
@@ -76,29 +84,8 @@ void search(enum state_signals_t signal, float p1, float p2)
             if ((int)p1)
                 transition(ST_PUSH_LEFT);
             break;
-        default:
-            break;
-    }
-}
-
-void approach(enum state_signals_t signal, float p1, float p2)
-{
-    switch (signal)
-    {
-        case SIG_CAN_SPOTTED:
-            set_motors_from_can_pos(p1, p2);
-
-            //TODO
-            //if (something)
-            //      transition(ST_PUSH);
-            break;
-        case SIG_FRONT_LEFT:
-            if ((int)p1)
-                transition(ST_PUSH_RIGHT);
-            break;
-        case SIG_FRONT_RIGHT:
-            if ((int)p1)
-                transition(ST_PUSH_LEFT);
+        case SIG_SEARCH_TIMEOUT:
+            transition(ST_SEARCH_SCRAMBLE);
             break;
         default:
             break;
@@ -174,6 +161,9 @@ void spin(enum state_signals_t signal, float p1, float p2)
         case SIG_SPIN_TIMEOUT:
             transition(ST_SEARCH);
             break;
+        case SIG_CAN_SPOTTED:
+            transition(ST_SEARCH);
+            break;
         case SIG_BACK_LEFT:
         case SIG_BACK_RIGHT:
             if ((int)p1)
@@ -186,7 +176,21 @@ void spin(enum state_signals_t signal, float p1, float p2)
 
 void search_scramble(enum state_signals_t signal, float p1, float p2)
 {
-    //TODO
+    switch (signal)
+    {
+        case SIG_ENTRY:
+            g_scramble_time= 0;
+            set_motors_spin();
+            break;
+        case SIG_SCRAMBLE_TIMEOUT:
+            transition(ST_SEARCH);
+            break;
+        case SIG_CAN_SPOTTED:
+            transition(ST_SEARCH);
+            break;
+        default:
+            break;
+    }
 }
 
 void can_search_init(cam_search_motor_set_t motor_set_callback)
@@ -204,9 +208,6 @@ void can_search_signal(enum state_signals_t signal, float p1, float p2)
             init(signal, p1, p2);
         case ST_SEARCH:
             search(signal, p1, p2);
-            return;
-        case ST_APPROACH:
-            approach(signal, p1, p2);
             return;
         case ST_PUSH:
             push(signal, p1, p2);
@@ -248,6 +249,24 @@ void can_search_tick(void)
         {
             can_search_signal(SIG_SPIN_TIMEOUT, 0, 0);
             g_spin_time = -1;
+        }
+    }
+    if (g_search_time >= 0)
+    {
+        g_search_time++;
+        if (g_search_time > SEARCH_TIMEOUT)
+        {
+            can_search_signal(SIG_SEARCH_TIMEOUT, 0, 0);
+            g_search_time = -1;
+        }
+    }
+    if (g_scramble_time >= 0)
+    {
+        g_scramble_time++;
+        if (g_scramble_time > SCRAMBLE_TIMEOUT)
+        {
+            can_search_signal(SIG_SCRAMBLE_TIMEOUT, 0, 0);
+            g_scramble_time = -1;
         }
     }
 }

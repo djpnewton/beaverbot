@@ -287,9 +287,10 @@ int function_called(pkowhai_protocol_server_t server, void* param, uint16_t func
         case SYM_GUIDANCE:
             if (teensy.program == PROGRAM_CAN_SEARCH)
             {
-                can_search_signal(SIG_CAN_SPOTTED,
-                        guidance.x / (float)guidance.window_width,
-                        guidance.y / (float)guidance.window_height);
+                if (guidance.window_width != 0)
+                    can_search_signal(SIG_CAN_SPOTTED,
+                            guidance.x / (float)guidance.window_width,
+                            guidance.y / (float)guidance.window_height);
             }
             return 1;
     }
@@ -659,5 +660,6 @@ ISR(TIMER0_OVF_vect)
     READ_ADC(ADC7D, 7);
     READ_ADC(ADC0D, 0);
 
-    can_search_tick();
+    if (teensy.program == PROGRAM_CAN_SEARCH)
+        can_search_tick();
 }

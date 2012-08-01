@@ -7,7 +7,6 @@ enum search_states_t
 {
     ST_INIT,
     ST_SEARCH,
-    ST_APPROACH,
     ST_PUSH,
     ST_PUSH_LEFT,
     ST_PUSH_RIGHT,
