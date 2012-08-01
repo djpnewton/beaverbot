@@ -658,4 +658,6 @@ ISR(TIMER0_OVF_vect)
     READ_ADC(ADC6D, 6);
     READ_ADC(ADC7D, 7);
     READ_ADC(ADC0D, 0);
+
+    can_search_tick();
 }
