@@ -179,10 +179,11 @@ if __name__ == "__main__":
             width, height = 160, 120
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_WIDTH, width);
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
-            # set teensy program
-            buf, buf_size = create_teensy_program_packet(5) # can_search
-            # write to teensy
-            write_teensy(dev, buf, buf_size)
+            if can_guide:
+                # set teensy program
+                buf, buf_size = create_teensy_program_packet(5) # can_search
+                # write to teensy
+                write_teensy(dev, buf, buf_size)
             # hunt can
             duty_cycle = 20
             image_buffers = None

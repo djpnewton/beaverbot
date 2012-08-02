@@ -7,22 +7,30 @@ counter = 0
 
 def start_controller():
     global counter
-    if counter == 10:
+    if counter == 1:
+        # teensy program 0 (NULL)
+        print "teensy program 0!"
+        os.system("%s -p%d" % (CONTROLLER_PATH, 0))
+    elif counter == 2:
+        # teensy program 1 (calibrate)
+        print "teensy program 1!"
+        os.system("%s -p%d" % (CONTROLLER_PATH, 1))
+    elif counter == 3:
+        # teensy program 3 (report sensors with beep)
+        print "teensy program 3!"
+        os.system("%s -p%d" % (CONTROLLER_PATH, 3))
+    elif counter == 4:
+        # can guidance
+        print "can guidance!"
+        os.system("%s -g" % (CONTROLLER_PATH))
+    elif counter == 5:
+        # can chase debug
+        print "can chase debug!"
+        os.system("%s -c1" % (CONTROLLER_PATH))
+    elif counter == 6:
         # can chase
         print "can chase!"
         os.system("%s -c0" % (CONTROLLER_PATH))
-    elif counter == 11:
-        # can chase
-        print "can chase debug!"
-        os.system("%s -c1" % (CONTROLLER_PATH))
-    elif counter == 12:
-        # can chase
-        print "can guidance!"
-        os.system("%s -g" % (CONTROLLER_PATH))
-    else:
-        # teensy program
-        print "teensy program %d!" % (counter - 1)
-        os.system("%s -p%d" % (CONTROLLER_PATH, counter - 1))
     counter = 0
 
 def kill_controller():
