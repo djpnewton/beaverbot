@@ -1,5 +1,7 @@
 #include "can_search.h"
 
+#include <stdlib.h>
+
 volatile enum search_states_t g_current_state = ST_INIT;
 cam_search_motor_set_t g_motor_set_callback;
 
@@ -40,6 +42,16 @@ void set_motors_forwards(void)
     g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE);
 }
 
+void set_motors_forwards_left(void)
+{
+    g_motor_set_callback(1, BASE_DUTY_CYCLE * 3 / 4, 1, BASE_DUTY_CYCLE);
+}
+
+void set_motors_forwards_right(void)
+{
+    g_motor_set_callback(1, BASE_DUTY_CYCLE * 3 / 4, 1, BASE_DUTY_CYCLE / 2);
+}
+
 void set_motors_backwards(void)
 {
     g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE);
@@ -76,9 +88,17 @@ void search(enum state_signals_t signal, float p1, float p2)
     switch (signal)
     {
         case SIG_ENTRY:
-            set_motors_forwards();
+        {
+            int r = rand();
+            if (r < RAND_MAX / 3)
+                set_motors_forwards();
+            else if (r < 2 * RAND_MAX / 3)
+                set_motors_forwards_left();
+            else
+                set_motors_forwards_right();
             g_search_time = 0;
             break;
+        }
         case SIG_EXIT:
             g_search_time = -1;
             break;
