@@ -5,14 +5,17 @@
 volatile enum search_states_t g_current_state = ST_INIT;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define BASE_DUTY_CYCLE 60
+#define BASE_DUTY_CYCLE 80
+#define SPIN_DUTY_CYCLE 50
 #define REVERSE_TIMEOUT 1000
-#define SPIN_TIMEOUT 750
+#define SPIN_TIMEOUT_MAX 1500
+#define SPIN_TIMEOUT_MIN 400
 #define SEARCH_TIMEOUT 5000
 #define SCRAMBLE_TIMEOUT 500
 
 volatile int g_reverse_time = -1;
 volatile int g_spin_time = -1;
+volatile int g_spin_timeout = SPIN_TIMEOUT_MIN;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 
@@ -64,12 +67,12 @@ void set_motors_none(void)
 
 void set_motors_spin_right(void)
 {
-    g_motor_set_callback(2, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE);
+    g_motor_set_callback(2, SPIN_DUTY_CYCLE, 1, SPIN_DUTY_CYCLE);
 }
 
 void set_motors_spin_left(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE);
+    g_motor_set_callback(1, SPIN_DUTY_CYCLE, 2, SPIN_DUTY_CYCLE);
 }
 
 void transition(enum search_states_t new_state)
@@ -217,9 +220,13 @@ void spin(enum state_signals_t signal, float p1, float p2)
     switch (signal)
     {
         case SIG_ENTRY:
+        {
+            float spin_extra = (SPIN_TIMEOUT_MAX - SPIN_TIMEOUT_MIN) * (float)rand() / RAND_MAX;
+            g_spin_timeout = SPIN_TIMEOUT_MIN + (int)spin_extra;
             g_spin_time = 0;
             set_motors_spin_right();
             break;
+        }
         case SIG_SPIN_TIMEOUT:
             transition(ST_SEARCH);
             break;
@@ -307,7 +314,7 @@ void can_search_tick(void)
     if (g_spin_time >= 0)
     {
         g_spin_time++;
-        if (g_spin_time > SPIN_TIMEOUT)
+        if (g_spin_time > g_spin_timeout)
         {
             can_search_signal(SIG_SPIN_TIMEOUT, 0, 0);
             g_spin_time = -1;
