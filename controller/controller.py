@@ -112,9 +112,10 @@ if __name__ == "__main__":
     can_chase = None
     can_chase_debug = None
     can_guide = None
+    can_guide_mode = None
     save_image = None
     import getopt, sys
-    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:gi", ["program="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:d:D:s:S:f:t:c:g:i", ["program="])
     for o, a in opts:
         if o == '-p':
             program = int(a)
@@ -143,6 +144,7 @@ if __name__ == "__main__":
             print "can_chase"
         elif o == '-g':
             can_guide = True
+            can_guide_mode = int(a)
             print "can_guide"
         elif o == '-i':
             save_image = True
@@ -181,7 +183,10 @@ if __name__ == "__main__":
             cv.SetCaptureProperty(cap, cv.CV_CAP_PROP_FRAME_HEIGHT, height);
             if can_guide:
                 # set teensy program
-                buf, buf_size = create_teensy_program_packet(5) # can_search
+                if can_guide_mode == 0:
+                    buf, buf_size = create_teensy_program_packet(5) # can_search (push)
+                else:
+                    buf, buf_size = create_teensy_program_packet(6) # can_search (spin)
                 # write to teensy
                 write_teensy(dev, buf, buf_size)
             # hunt can

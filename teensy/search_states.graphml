@@ -151,6 +151,18 @@ FRONT_LEFT</y:NodeLabel>
         </y:ShapeNode>
       </data>
     </node>
+    <node id="n11">
+      <data key="d5"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:Geometry height="72.0" width="110.0" x="816.25" y="51.25"/>
+          <y:Fill color="#FFCC00" transparent="false"/>
+          <y:BorderStyle color="#000000" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="62.705078125" x="23.6474609375" y="26.6494140625">super_spin</y:NodeLabel>
+          <y:Shape type="roundrectangle"/>
+        </y:ShapeNode>
+      </data>
+    </node>
     <edge id="e0" source="n4" target="n5">
       <data key="d9"/>
       <data key="d10">
@@ -372,6 +384,36 @@ BACK_RIGHT</y:EdgeLabel>
 [can_pos_Y &gt; something &amp;&amp;
 can_pos_X within center]</y:EdgeLabel>
           <y:Arc height="136.61398315429688" ratio="1.0" type="fixedRatio"/>
+        </y:ArcEdge>
+      </data>
+    </edge>
+    <edge id="e16" source="n3" target="n11">
+      <data key="d9"/>
+      <data key="d10">
+        <y:ArcEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="605.1875" y="12.8125"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="48.103515625" modelName="six_pos" modelPosition="thead" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="155.763671875" x="238.10317993164062" y="-169.66272381277804">CAN_SPOTTED
+[can_pos_Y &gt; something &amp;&amp;
+can_pos_X within center]</y:EdgeLabel>
+          <y:Arc height="123.55581665039062" ratio="1.0" type="fixedRatio"/>
+        </y:ArcEdge>
+      </data>
+    </edge>
+    <edge id="e17" source="n11" target="n3">
+      <data key="d9"/>
+      <data key="d10">
+        <y:ArcEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="619.2537231445312" y="85.6191635131836"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="six_pos" modelPosition="tail" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="44.669921875" x="-125.36557006835938" y="9.419151842370155">ENTRY</y:EdgeLabel>
+          <y:Arc height="-49.402809143066406" ratio="-0.3998420238494873" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>

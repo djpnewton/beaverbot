@@ -21,16 +21,24 @@ def start_controller():
         os.system("%s -p%d" % (CONTROLLER_PATH, 3))
     elif counter == 4:
         # can guidance
-        print "can guidance!"
-        os.system("%s -g" % (CONTROLLER_PATH))
+        print "can guidance push!"
+        os.system("%s -g0" % (CONTROLLER_PATH))
     elif counter == 5:
+        # can guidance (spin)
+        print "can guidance spin!"
+        os.system("%s -g1" % (CONTROLLER_PATH))
+    elif counter == 6:
         # can chase debug
         print "can chase debug!"
         os.system("%s -c1" % (CONTROLLER_PATH))
-    elif counter == 6:
+    elif counter == 7:
         # can chase
         print "can chase!"
         os.system("%s -c0" % (CONTROLLER_PATH))
+    elif counter == 8:
+        # capture image
+        print "capture image!"
+        os.system("%s -i" % (CONTROLLER_PATH))
     counter = 0
 
 def kill_controller():

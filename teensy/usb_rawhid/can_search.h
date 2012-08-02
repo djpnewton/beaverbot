@@ -3,10 +3,17 @@
 
 #include <stdint.h>
 
+enum search_mode_t
+{
+    SM_PUSH,
+    SM_SPIN,
+};
+
 enum search_states_t
 {
     ST_INIT,
     ST_SEARCH,
+    ST_SUPER_SPIN,
     ST_PUSH,
     ST_PUSH_LEFT,
     ST_PUSH_RIGHT,
@@ -35,7 +42,7 @@ enum state_signals_t
 
 typedef void (*cam_search_motor_set_t)(uint8_t direction1, uint8_t value1, uint8_t direction2, uint8_t value2); 
 
-void can_search_init(cam_search_motor_set_t motor_set_callback);
+void can_search_init(enum search_mode_t mode, cam_search_motor_set_t motor_set_callback);
 void can_search_signal(enum state_signals_t signal, float p1, float p2);
 void can_search_tick(void);
 

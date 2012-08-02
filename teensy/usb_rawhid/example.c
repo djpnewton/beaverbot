@@ -267,7 +267,8 @@ enum program_t
     PROGRAM_REPORT_SENSORS,
     PROGRAM_REPORT_SENSORS_WITH_BEEP,
     PROGRAM_STAY_ON_TABLE,
-    PROGRAM_CAN_SEARCH_INIT,
+    PROGRAM_CAN_SEARCH_INIT_01,
+    PROGRAM_CAN_SEARCH_INIT_02,
     PROGRAM_BOOTLOADER,
 
 
@@ -486,9 +487,13 @@ void step_program(struct kowhai_protocol_server_t* server)
         case PROGRAM_STAY_ON_TABLE:
             stay_on_table();
             break;
-        case PROGRAM_CAN_SEARCH_INIT:
+        case PROGRAM_CAN_SEARCH_INIT_01:
+        case PROGRAM_CAN_SEARCH_INIT_02:
             calibrate_sensors();
-            can_search_init(motor_set__);
+            if (teensy.program == PROGRAM_CAN_SEARCH_INIT_01)
+                can_search_init(SM_PUSH, motor_set__);
+            else
+                can_search_init(SM_SPIN, motor_set__);
             teensy.program = PROGRAM_CAN_SEARCH;
             break;
         case PROGRAM_CAN_SEARCH:

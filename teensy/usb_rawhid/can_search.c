@@ -1,12 +1,16 @@
 #include "can_search.h"
 
 #include <stdlib.h>
+#include <util/delay.h>
 
 volatile enum search_states_t g_current_state = ST_INIT;
+enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
 #define BASE_DUTY_CYCLE 80
 #define SPIN_DUTY_CYCLE 50
+#define SPIN_SUPER_DUTY_CYCLE 250
+#define SPIN_SUPER_TIMEOUT 120
 #define REVERSE_TIMEOUT 1000
 #define SPIN_TIMEOUT_MAX 1500
 #define SPIN_TIMEOUT_MIN 400
@@ -75,6 +79,11 @@ void set_motors_spin_left(void)
     g_motor_set_callback(1, SPIN_DUTY_CYCLE, 2, SPIN_DUTY_CYCLE);
 }
 
+void set_motors_spin_super(void)
+{
+    g_motor_set_callback(2, SPIN_SUPER_DUTY_CYCLE, 1, SPIN_SUPER_DUTY_CYCLE);
+}
+
 void transition(enum search_states_t new_state)
 {
     can_search_signal(SIG_EXIT, 0, 0);
@@ -106,8 +115,13 @@ void search(enum state_signals_t signal, float p1, float p2)
             g_search_time = -1;
             break;
         case SIG_CAN_SPOTTED:
-            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.50)
-                transition(ST_PUSH);
+            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.60)
+            {
+                if (g_search_mode == SM_PUSH)
+                    transition(ST_PUSH);
+                else
+                    transition(ST_SUPER_SPIN);
+            }
             else
             {
                 set_motors_from_can_pos(p1, p2);
@@ -124,6 +138,20 @@ void search(enum state_signals_t signal, float p1, float p2)
             break;
         case SIG_SEARCH_TIMEOUT:
             transition(ST_SEARCH_SCRAMBLE);
+            break;
+        default:
+            break;
+    }
+}
+
+void super_spin(enum state_signals_t signal, float p1, float p2)
+{
+     switch (signal)
+    {
+        case SIG_ENTRY:
+            set_motors_spin_super();
+            _delay_ms(SPIN_SUPER_TIMEOUT);
+            transition(ST_SEARCH);
             break;
         default:
             break;
@@ -262,11 +290,15 @@ void search_scramble(enum state_signals_t signal, float p1, float p2)
     }
 }
 
-void can_search_init(cam_search_motor_set_t motor_set_callback)
+void can_search_init(enum search_mode_t mode, cam_search_motor_set_t motor_set_callback)
 {
     g_motor_set_callback = motor_set_callback;
     g_current_state = ST_INIT;
-    transition(ST_PUSH);
+    g_search_mode = mode;
+    if (mode == SM_PUSH)
+        transition(ST_PUSH);
+    else
+        transition(ST_SEARCH);
 }
 
 void can_search_signal(enum state_signals_t signal, float p1, float p2)
@@ -278,6 +310,8 @@ void can_search_signal(enum state_signals_t signal, float p1, float p2)
         case ST_SEARCH:
             search(signal, p1, p2);
             return;
+        case ST_SUPER_SPIN:
+            super_spin(signal, p1, p2);
         case ST_PUSH:
             push(signal, p1, p2);
             return;
