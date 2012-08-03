@@ -23,14 +23,24 @@ volatile int g_spin_timeout = SPIN_TIMEOUT_MIN;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 
+#define DAMPER_SCALE 2.0f
 void set_motors_from_can_pos(float x, float y)
 {
     uint8_t value1 = BASE_DUTY_CYCLE;
     uint8_t value2 = BASE_DUTY_CYCLE;
+    uint8_t diff;
     if (x < 0.5f)
+    {
         value2 = (uint8_t)(x / 0.5f * BASE_DUTY_CYCLE);
+        diff = BASE_DUTY_CYCLE - value2;
+        value2 += (uint8_t)(diff * (DAMPER_SCALE - 1) / DAMPER_SCALE);
+    }
     if (x > 0.5f)
+    {
         value1 = (uint8_t)((x - 0.5f) / 0.5f * BASE_DUTY_CYCLE);
+        diff = BASE_DUTY_CYCLE - value1;
+        value1 += (uint8_t)(diff * (DAMPER_SCALE - 1) / DAMPER_SCALE);
+    }
     g_motor_set_callback(1, value1, 1, value2);
 }
 
@@ -115,7 +125,7 @@ void search(enum state_signals_t signal, float p1, float p2)
             g_search_time = -1;
             break;
         case SIG_CAN_SPOTTED:
-            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.60)
+            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.75)
             {
                 if (g_search_mode == SM_PUSH)
                     transition(ST_PUSH);
