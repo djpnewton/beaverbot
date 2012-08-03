@@ -7,7 +7,7 @@ volatile enum search_states_t g_current_state = ST_INIT;
 enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define BASE_DUTY_CYCLE 80
+#define BASE_DUTY_CYCLE 160
 #define SPIN_DUTY_CYCLE 50
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
@@ -23,7 +23,7 @@ volatile int g_spin_timeout = SPIN_TIMEOUT_MIN;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 
-#define DAMPER_SCALE 2.0f
+#define DAMPER_SCALE 3.0f
 void set_motors_from_can_pos(float x, float y)
 {
     uint8_t value1 = BASE_DUTY_CYCLE;
@@ -66,7 +66,7 @@ void set_motors_forwards_left(void)
 
 void set_motors_forwards_right(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE * 3 / 4, 1, BASE_DUTY_CYCLE / 2);
+    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 3 / 4);
 }
 
 void set_motors_backwards(void)
@@ -112,10 +112,8 @@ void search(enum state_signals_t signal, float p1, float p2)
         case SIG_ENTRY:
         {
             int r = rand();
-            if (r < RAND_MAX / 3)
+            if (r < RAND_MAX / 2)
                 set_motors_forwards();
-            else if (r < 2 * RAND_MAX / 3)
-                set_motors_forwards_left();
             else
                 set_motors_forwards_right();
             g_search_time = 0;
