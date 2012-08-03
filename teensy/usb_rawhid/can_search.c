@@ -7,7 +7,7 @@ volatile enum search_states_t g_current_state = ST_INIT;
 enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define BASE_DUTY_CYCLE 160
+#define BASE_DUTY_CYCLE 200
 #define SPIN_DUTY_CYCLE 50
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
@@ -23,7 +23,7 @@ volatile int g_spin_timeout = SPIN_TIMEOUT_MIN;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 
-#define DAMPER_SCALE 3.0f
+#define DAMPER_SCALE 4.0f
 void set_motors_from_can_pos(float x, float y)
 {
     uint8_t value1 = BASE_DUTY_CYCLE;
