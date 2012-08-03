@@ -7,14 +7,14 @@ volatile enum search_states_t g_current_state = ST_INIT;
 enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define BASE_DUTY_CYCLE 200
-#define SPIN_DUTY_CYCLE 50
+#define BASE_DUTY_CYCLE 180
+#define SPIN_DUTY_CYCLE 40
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
-#define REVERSE_TIMEOUT 1000
+#define REVERSE_TIMEOUT 500
 #define SPIN_TIMEOUT_MAX 1500
 #define SPIN_TIMEOUT_MIN 400
-#define SEARCH_TIMEOUT 5000
+#define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
 
 volatile int g_reverse_time = -1;
@@ -61,17 +61,17 @@ void set_motors_forwards(void)
 
 void set_motors_forwards_left(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE * 3 / 4, 1, BASE_DUTY_CYCLE);
+    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 3 / 4);
 }
 
 void set_motors_forwards_right(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 3 / 4);
+    g_motor_set_callback(1, BASE_DUTY_CYCLE * 3 / 4, 1, BASE_DUTY_CYCLE);
 }
 
 void set_motors_backwards(void)
 {
-    g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE);
+    g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE - 30);
 }
 
 void set_motors_none(void)
