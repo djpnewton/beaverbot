@@ -46,8 +46,9 @@ TARGET = example
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c \
-      usb_rawhid.c \
-      analog.c \
+	  can_search.c \
+	  usb_rawhid.c \
+	  analog.c \
 	  kowhai\kowhai.c \
 	  kowhai\kowhai_protocol.c \
 	  kowhai\kowhai_protocol_server.c

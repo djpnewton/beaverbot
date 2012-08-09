@@ -31,3 +31,9 @@ Value
 Beep
 Frequency
 Duration
+
+Guidance
+X
+Y
+WindowWidth
+WindowHeight
