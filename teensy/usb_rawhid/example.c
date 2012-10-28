@@ -356,6 +356,9 @@ void stay_on_table(void)
         PORTF = 10; 
         OCR2A = 100;
         OCR2B = 100;
+        // check if table edge is near
+        if (teensy.sensors[4].value)
+            OCR2A -= 75;
     }
     if (saw_table_edge_rear)
     {
