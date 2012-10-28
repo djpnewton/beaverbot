@@ -49,7 +49,7 @@
 
 #define PORT_COUNT 6
 #define ADC_COUNT 8
-#define TABLE_SENSOR_COUNT 4
+#define TABLE_SENSOR_COUNT 6
 #define MOTOR_COUNT 2
 
 struct kowhai_node_t teensy_descriptor[] =
@@ -248,7 +248,7 @@ void do_beep(struct beep_t* beep)
 {
     cli(); // disable interrupts
 
-    DDRC = 3;
+    DDRC = DDRC | 3;
     int duration = beep->duration;
     while (duration > 0)
     {
@@ -383,20 +383,32 @@ int check_sensors(void)
     int i;
     for (i = 0; i < TABLE_SENSOR_COUNT; i++)
     {
-        if (teensy.sensors[i].triggered)
+        if (i > 3)
         {
-            if (teensy.sensors[i].value < teensy.sensors[i].trigger - ADC_HIST)
+            if (teensy.sensors[i].triggered != teensy.sensors[i].value)
             {
-                teensy.sensors[i].triggered = 0;
-                return i;
+                teensy.sensors[i].triggered = teensy.sensors[i].value;
+                if (i != 5) // TODO: pin is floating because i havent hooked up hardware yet!!
+                    return i;
             }
         }
         else
         {
-            if (teensy.sensors[i].value > teensy.sensors[i].trigger + 50)
+            if (teensy.sensors[i].triggered)
             {
-                teensy.sensors[i].triggered = 1;
-                return i;
+                if (teensy.sensors[i].value < teensy.sensors[i].trigger - ADC_HIST)
+                {
+                    teensy.sensors[i].triggered = 0;
+                    return i;
+                }
+            }
+            else
+            {
+                if (teensy.sensors[i].value > teensy.sensors[i].trigger + 50)
+                {
+                    teensy.sensors[i].triggered = 1;
+                    return i;
+                }
             }
         }
     }
@@ -446,6 +458,8 @@ void step_program(struct kowhai_protocol_server_t* server)
     teensy.sensors[1].value = teensy.adc.adc[6];
     teensy.sensors[2].value = teensy.adc.adc[5];
     teensy.sensors[3].value = teensy.adc.adc[4];
+    teensy.sensors[4].value = PINC & 0x80;
+    teensy.sensors[5].value = PINC & 0x04;
     // turn on pwm
     DDRB = 16;
     DDRD = 2;
@@ -455,6 +469,9 @@ void step_program(struct kowhai_protocol_server_t* server)
     // turn on adc
     DIDR0 = 255;
     DIDR1 = 0;
+    // turn on sharp infrared gpios
+    DDRC = 0x78;
+    PORTC = 0x48;
     switch (teensy.program)
     {
         case PROGRAM_CALIBRATE_TABLE_SENSORS:
