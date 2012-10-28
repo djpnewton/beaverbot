@@ -556,17 +556,20 @@ int main(void)
 
 
     // init kowhai server
-    uint16_t tree_list[] = {SYM_TEENSY, SYM_TABLESENSOREVENT, SYM_MOTORSET, SYM_BEEP, SYM_GUIDANCE};
-    struct kowhai_node_t* tree_descriptors[] = {teensy_descriptor, table_sensor_event_descriptor, motor_set_descriptor, beep_descriptor, guidance_descriptor};
-    size_t tree_descriptor_sizes[COUNT_OF(tree_descriptors)];
-    void* tree_data_buffers[] = {&teensy, NULL, &motor_set, &beep, &guidance};
-    uint16_t function_list[] = {SYM_MOTORSET, SYM_BEEP, SYM_GUIDANCE};
-    struct kowhai_protocol_function_details_t function_list_details[] = {
-        {SYM_MOTORSET, KOW_UNDEFINED_SYMBOL},
-        {SYM_BEEP, KOW_UNDEFINED_SYMBOL},
-        {SYM_GUIDANCE, KOW_UNDEFINED_SYMBOL},
+    struct kowhai_protocol_server_tree_item_t tree_list[] = {
+        { KOW_TREE_ID(SYM_TEENSY), teensy_descriptor, 0, &teensy },
+        { KOW_TREE_ID(SYM_TABLESENSOREVENT), table_sensor_event_descriptor, 0, NULL },
+        { KOW_TREE_ID_FUNCTION_ONLY(SYM_MOTORSET), motor_set_descriptor, 0, &motor_set },
+        { KOW_TREE_ID_FUNCTION_ONLY(SYM_BEEP), beep_descriptor, 0, &beep },
+        { KOW_TREE_ID_FUNCTION_ONLY(SYM_GUIDANCE), guidance_descriptor, 0, &guidance },
     };
-    kowhai_server_init_tree_descriptor_sizes(tree_descriptors, tree_descriptor_sizes, COUNT_OF(tree_descriptors));
+    struct kowhai_protocol_id_list_item_t tree_id_list[COUNT_OF(tree_list)];
+    struct kowhai_protocol_server_function_item_t function_list[] = {
+        { KOW_FUNCTION_ID(SYM_MOTORSET),    {SYM_MOTORSET, KOW_UNDEFINED_SYMBOL} },
+        { KOW_FUNCTION_ID(SYM_BEEP),        {SYM_BEEP, KOW_UNDEFINED_SYMBOL} },
+        { KOW_FUNCTION_ID(SYM_GUIDANCE),    {SYM_GUIDANCE, KOW_UNDEFINED_SYMBOL} },
+    };
+    struct kowhai_protocol_id_list_item_t function_id_list[COUNT_OF(function_list)];
     struct kowhai_protocol_server_t server;
     kowhai_server_init(&server,
             RAWHID_PACKET_SIZE,
@@ -578,12 +581,10 @@ int main(void)
             NULL,
             COUNT_OF(tree_list),
             tree_list,
-            tree_descriptors,
-            tree_descriptor_sizes,
-            tree_data_buffers,
+            tree_id_list,
             COUNT_OF(function_list),
             function_list,
-            function_list_details,
+            function_id_list,
             function_called,
             NULL,
             COUNT_OF(symbols),

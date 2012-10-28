@@ -74,7 +74,6 @@
 // Acknowledge get symbol list command (this is the final packet)
 #define KOW_CMD_GET_SYMBOL_LIST_ACK_END      0x9E
 
-
 // Error codes
 #define KOW_CMD_ERROR_INVALID_COMMAND        0xF0
 #define KOW_CMD_ERROR_INVALID_TREE_ID        0xF1
@@ -147,6 +146,15 @@ struct kowhai_protocol_id_list_t
     uint16_t list_count;
     uint16_t offset;
     uint16_t size;
+};
+
+/**
+ * @brief 
+ */
+struct kowhai_protocol_id_list_item_t
+{
+    uint16_t id;
+    uint16_t type;
 };
 
 /**
@@ -309,6 +317,10 @@ struct kowhai_protocol_t
         protocol.header.command = KOW_CMD_GET_SYMBOL_LIST; \
         protocol.header.id = 0;                            \
     }
+
+#define KOW_TREE_ID(id) {id, 0}
+#define KOW_TREE_ID_FUNCTION_ONLY(id) {id, KOW_TREE_FOR_FUNCTION_CALL_ONLY}
+#define KOW_FUNCTION_ID(id) {id, 0}
 
 //
 // Functions

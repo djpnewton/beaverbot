@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#define VERSION 4
+#define VERSION 6
 
 uint32_t kowhai_version(void)
 {
@@ -16,6 +16,7 @@ int kowhai_get_node_type_size(uint16_t type)
         // meta tags only (no real size in the buffer)
         case KOW_BRANCH_START:
         case KOW_BRANCH_END:
+        case KOW_BRANCH_U_START:
             return 0;
 
         // normal types to describe a buffer
@@ -40,53 +41,67 @@ int kowhai_get_node_type_size(uint16_t type)
 static int get_node_size(const struct kowhai_node_t *node, int *size, int *num_nodes_processed)
 {
     int _size = 0;
-    uint16_t i = 0;
+    int i = 0;
 
     *num_nodes_processed = 0;
 
-    // if this is not a branch then just return the size of the node item (otherwise we need to drill baby)
-    if (node->type != KOW_BRANCH_START)
+    switch (node->type)
     {
-        _size = kowhai_get_node_type_size(node->type) * node->count;
-        *num_nodes_processed = 0;
-        goto done;
-    }
-    
-    // this is a branch so look through all the elements in this branch and accumulate the sizes
-    while (1)
-    {
-        i++;
-        *num_nodes_processed = i;
-        switch ((enum kowhai_node_type)node[i].type)
-        {
-            // navigate the hierarchy info
-            case KOW_BRANCH_START:
+        case KOW_BRANCH_START:
+        case KOW_BRANCH_U_START:
+            // this is a branch so look through all the elements in this branch and accumulate the sizes
+            while (1)
             {
-                int child_branch_size = 0;
-                int _num_child_nodes_processed;
-                int ret;
-                ret = get_node_size(node + i, &child_branch_size, &_num_child_nodes_processed);
-                if (ret != KOW_STATUS_OK)
-                    return ret;
-                // accumulate the branches size
-                _size += child_branch_size;
-                // skip the already processed nodes
-                i += _num_child_nodes_processed;
-                break;
+                i++;
+                *num_nodes_processed = i;
+                switch ((enum kowhai_node_type)node[i].type)
+                {
+                    // navigate the hierarchy info
+                    case KOW_BRANCH_START:
+                    case KOW_BRANCH_U_START:
+                    {
+                        int child_branch_size = 0;
+                        int _num_child_nodes_processed;
+                        int ret;
+                        ret = get_node_size(node + i, &child_branch_size, &_num_child_nodes_processed);
+                        if (ret != KOW_STATUS_OK)
+                            return ret;
+                        // accumulate the branches size
+                        if (node->type == KOW_BRANCH_START)
+                            _size += child_branch_size;
+                        else if (child_branch_size > _size)
+                            _size = child_branch_size;
+                        // skip the already processed nodes
+                        i += _num_child_nodes_processed;
+                        break;
+                    }
+                    case KOW_BRANCH_END:
+                        // accumulate the whole array
+                        _size *= node->count;
+                        goto done;
+
+                    // accumulate the size of all the other node_count
+                    default:
+                    {
+                        int child_node_size = kowhai_get_node_type_size(node[i].type) * node[i].count;
+                        if (node->type == KOW_BRANCH_START)
+                            _size += child_node_size;
+                        else if (child_node_size > _size)
+                            _size = child_node_size;
+                        break;
+                    }
+                }
             }
-            case KOW_BRANCH_END:
-                // accumulate the whole array
-                _size *= node->count;
-                goto done;
-            
-            // accumulate the size of all the other node_count
-            default:
-                _size += kowhai_get_node_type_size(node[i].type) * node[i].count;
-                break;
-        }
+            break;
+        default:
+            // if this is not a branch then just return the size of the node item (otherwise we need to drill baby)
+            _size = kowhai_get_node_type_size(node->type) * node->count;
+            *num_nodes_processed = 0;
+            break;
     }
 
 done:
+    // update caller with size information
     if (size != NULL)
         *size = _size;
 
@@ -118,10 +133,10 @@ int kowhai_get_node_count(const struct kowhai_node_t *node, int *count)
  * @return < 0 on failure
  * @todo find the correct index (always 0 atm)
  */
-int get_node(const struct kowhai_node_t *node, int num_symbols, const union kowhai_symbol_t *symbols, int *offset, struct kowhai_node_t **target_node, int initial_branch)
+int get_node(const struct kowhai_node_t *node, int num_symbols, const union kowhai_symbol_t *symbols, int *offset, struct kowhai_node_t **target_node, int initial_branch, int branch_union)
 {
     int i = 0;
-    uint16_t _offset = 0;
+    int _offset = 0;
     int ret;
 
     // look through all the items in the node list
@@ -130,12 +145,11 @@ int get_node(const struct kowhai_node_t *node, int num_symbols, const union kowh
         int skip_size;
         int skip_nodes;
 
-        switch ((enum kowhai_node_type)node[i].type)
+        switch (node[i].type)
         {
             case KOW_BRANCH_END:
                 // if we got a branch end then we didn't find it on this path
                 return KOW_STATUS_INVALID_SYMBOL_PATH;
-            case KOW_BRANCH_START:
             default:
                 // if the path symbols match and the node array count is large enough to contain our index this could be the target node
                 if ((symbols->parts.name == node[i].symbol) && (node[i].count > symbols->parts.array_index))
@@ -149,11 +163,11 @@ int get_node(const struct kowhai_node_t *node, int num_symbols, const union kowh
                         goto done;
                     }
                     
-                    if ((enum kowhai_node_type)node[i].type == KOW_BRANCH_START)
+                    if (node[i].type == KOW_BRANCH_START || node[i].type == KOW_BRANCH_U_START)
                     {
                         int branch_offset = 0;
                         // this is not the target node but it is possibly in this branch so drill baby drill
-                        ret = get_node(node + i + 1, num_symbols - 1, symbols + 1, &branch_offset, target_node, 0);
+                        ret = get_node(node + i + 1, num_symbols - 1, symbols + 1, &branch_offset, target_node, 0, node[i].type == KOW_BRANCH_U_START);
                         if (ret == KOW_STATUS_INVALID_SYMBOL_PATH)
                             // branch ended without finding our target node so goto next
                             break;
@@ -172,7 +186,8 @@ int get_node(const struct kowhai_node_t *node, int num_symbols, const union kowh
         if (ret != KOW_STATUS_OK)
             // propagate the error
             return ret;
-        _offset += skip_size;
+        if (!branch_union)
+            _offset += skip_size;
         i += skip_nodes + 1;
     }
 
@@ -198,7 +213,7 @@ int kowhai_get_node(const struct kowhai_node_t *node, int num_symbols, const uni
 {
     if (node->type != KOW_BRANCH_START)
         return KOW_STATUS_INVALID_DESCRIPTOR;
-    return get_node(node, num_symbols, symbols, offset, target_node, 1);
+    return get_node(node, num_symbols, symbols, offset, target_node, 1, node->type == KOW_BRANCH_U_START);
 }
 
 int kowhai_read(struct kowhai_tree_t *tree, int num_symbols, union kowhai_symbol_t* symbols, int read_offset, void* result, int read_size)

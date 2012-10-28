@@ -8,6 +8,7 @@
 #pragma pack(1)
 
 #define KOW_UNDEFINED_SYMBOL 65535
+#define KOW_TREE_FOR_FUNCTION_CALL_ONLY 1
 
 /**
  * @brief basic types found in a tree descriptor
@@ -18,9 +19,10 @@ enum kowhai_node_type
     // meta tags to denote structure
     KOW_BRANCH_START = 0x0000,
     KOW_BRANCH_END,
+    KOW_BRANCH_U_START,         /// branch union, all child nodes have a zero memory offset
 
     // types to describe buffer layout
-    KOW_INT8 = 0x0070,        ///@todo make this a reasonable balance
+    KOW_INT8 = 0x0070,          ///@todo make this a reasonable balance
     KOW_UINT8,
     KOW_INT16,
     KOW_UINT16,
