@@ -329,6 +329,10 @@ void motor_set_(struct motor_set_t* ms)
     OCR2B = ms->motor[1].value;
 }
 
+// stay-on-table states
+#define SOT_FIND_EDGE 1
+#define SOT_FOUND_EDGE 2
+int SOT_state = SOT_FIND_EDGE;
 void stay_on_table(void)
 {
     static long long int saw_table_edge_front = 0;
@@ -337,12 +341,13 @@ void stay_on_table(void)
     if (teensy.sensors[0].value > teensy.sensors[0].trigger ||
         teensy.sensors[1].value > teensy.sensors[1].trigger)
         // init backward routine
-        saw_table_edge_front = 50000;
+        saw_table_edge_front = 10000;
     if (teensy.sensors[2].value > teensy.sensors[2].trigger)
         // init oh-no! routine
         saw_table_edge_rear = 30000;
     if (saw_table_edge_front)
     {
+        SOT_state = SOT_FIND_EDGE;
         // turn backwards
         PORTF = 5; 
         OCR2A = 60;
@@ -354,11 +359,32 @@ void stay_on_table(void)
     {
         // go forwards
         PORTF = 10; 
-        OCR2A = 100;
-        OCR2B = 100;
+        if (SOT_state == SOT_FIND_EDGE)
+        {
+            // spiral out clockwise to find edge of table
+            OCR2A = 75;
+            OCR2B = 100;
+        }
+        else
+        {
+            // outside corner, turn around it
+            OCR2A = 100;
+            OCR2B = 75;
+        }
         // check if table edge is near
         if (teensy.sensors[4].value)
-            OCR2A -= 75;
+        {
+            // drift away from edge
+            SOT_state = SOT_FOUND_EDGE;
+            OCR2A = 75;
+            OCR2B = 100;
+            if (teensy.sensors[5].value)
+                // inside corner, turn sharply
+                OCR2A = 0;
+        }
+        else if (teensy.sensors[5].value) 
+        {
+        }
     }
     if (saw_table_edge_rear)
     {
@@ -391,8 +417,7 @@ int check_sensors(void)
             if (teensy.sensors[i].triggered != teensy.sensors[i].value)
             {
                 teensy.sensors[i].triggered = teensy.sensors[i].value;
-                if (i != 5) // TODO: pin is floating because i havent hooked up hardware yet!!
-                    return i;
+                return i;
             }
         }
         else
