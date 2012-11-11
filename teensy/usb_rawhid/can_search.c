@@ -14,10 +14,12 @@ cam_search_motor_set_t g_motor_set_callback;
 #define REVERSE_TIMEOUT 500
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
+#define DRIFTON_TIMEOUT 300
 
 volatile int g_reverse_time = -1;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
+volatile int g_drifton_time = -1;
 
 #define DAMPER_SCALE 4.0f
 void set_motors_from_can_pos(float x, float y)
@@ -63,6 +65,11 @@ void set_motors_forwards_slow(void)
 void set_motors_forwards_left(void)
 {
     g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 4 / 5);
+}
+
+void set_motors_forwards_left_hard(void)
+{
+    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 4 / 7);
 }
 
 void set_motors_forwards_right(void)
@@ -187,7 +194,38 @@ void drift_on_wall(enum state_signals_t signal, float p1, float p2)
      switch (signal)
     {
         case SIG_ENTRY:
+            g_drifton_time = 0;
             set_motors_forwards_left();
+            break;
+        case SIG_CAN_SPOTTED:
+            transition(ST_SEARCH_WALL);
+            break;
+        case SIG_FRONT_LEFT:
+        case SIG_FRONT_RIGHT:
+            if ((int)p1)
+                transition(ST_REVERSE);
+            break;
+        case SIG_BOOM_FRONT:
+            if ((int)p1)
+                transition(ST_DRIFT_OFF_WALL);
+            break;
+        case SIG_BOOM_BACK:
+            if ((int)p1)
+                transition(ST_SPIN_OFF_WALL);
+        case SIG_DRIFT_ON_TIMEOUT:
+            transition(ST_DRIFT_ON_WALL_HARD);
+            break;
+        default:
+            break;
+    }
+}
+
+void drift_on_wall_hard(enum state_signals_t signal, float p1, float p2)
+{
+     switch (signal)
+    {
+        case SIG_ENTRY:
+            set_motors_forwards_left_hard();
             break;
         case SIG_CAN_SPOTTED:
             transition(ST_SEARCH_WALL);
@@ -381,6 +419,9 @@ void can_search_signal(enum state_signals_t signal, float p1, float p2)
         case ST_DRIFT_ON_WALL:
             drift_on_wall(signal, p1, p2);
             return;
+        case ST_DRIFT_ON_WALL_HARD:
+            drift_on_wall_hard(signal, p1, p2);
+            return;
         case ST_SUPER_SPIN:
             super_spin(signal, p1, p2);
         case ST_PUSH:
@@ -429,6 +470,15 @@ void can_search_tick(void)
         {
             can_search_signal(SIG_SCRAMBLE_TIMEOUT, 0, 0);
             g_scramble_time = -1;
+        }
+    }
+    if (g_drifton_time >= 0)
+    {
+        g_drifton_time++;
+        if (g_drifton_time > DRIFTON_TIMEOUT)
+        {
+            can_search_signal(SIG_DRIFT_ON_TIMEOUT, 0, 0);
+            g_drifton_time = -1;
         }
     }
 }
