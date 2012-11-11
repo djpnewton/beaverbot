@@ -54,7 +54,9 @@ CAN_SPOTTED</y:NodeLabel>
           <y:Geometry height="72.0" width="110.0" x="797.25" y="430.0"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="30.021484375" x="39.9892578125" y="26.6494140625">push</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="48.103515625" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="88.66796875" x="10.666015625" y="11.9482421875">push
+BOOM_FRONT
+BOOM_BACK</y:NodeLabel>
           <y:Shape type="roundrectangle"/>
         </y:ShapeNode>
       </data>
@@ -273,14 +275,14 @@ BOOM_BACK</y:EdgeLabel>
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="614.4140014648438" y="217.08148193359375"/>
+            <y:Point x="614.1268310546875" y="217.6617889404297"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="48.103515625" modelName="six_pos" modelPosition="tail" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="155.763671875" x="409.4870694950854" y="123.18180847167969">CAN_SPOTTED
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="48.103515625" modelName="six_pos" modelPosition="ttail" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="155.763671875" x="482.7384733546095" y="199.8809051513672">CAN_SPOTTED
 [can_pos_Y &gt; something &amp;&amp;
 can_pos_X within center]</y:EdgeLabel>
-          <y:Arc height="117.61864471435547" ratio="0.727024257183075" type="fixedRatio"/>
+          <y:Arc height="116.97117614746094" ratio="0.7230221629142761" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>
@@ -351,18 +353,18 @@ BACK_RIGHT<y:LabelModel>
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="604.96875" y="78.703125"/>
+            <y:Point x="604.96875" y="35.703125"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="92.001953125" x="-97.97482748656375" y="36.93516024293692">!BOOM_FRONT<y:LabelModel>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="92.001953125" x="-101.9144287109375" y="-36.36122592725128">!BOOM_FRONT<y:LabelModel>
               <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
             </y:LabelModel>
             <y:ModelParameter>
-              <y:SmartEdgeLabelModelParameter angle="0.0" distance="30.0" distanceToCenter="true" position="left" ratio="1.0" segment="0"/>
+              <y:SmartEdgeLabelModelParameter angle="0.0" distance="30.0" distanceToCenter="true" position="right" ratio="0.8802453055306514" segment="0"/>
             </y:ModelParameter>
           </y:EdgeLabel>
-          <y:Arc height="55.453125" ratio="1.0" type="fixedRatio"/>
+          <y:Arc height="12.453125" ratio="0.22457030415534973" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>
@@ -383,6 +385,26 @@ BACK_RIGHT<y:LabelModel>
             </y:ModelParameter>
           </y:EdgeLabel>
           <y:Arc height="-27.252565383911133" ratio="-0.4022030234336853" type="fixedRatio"/>
+        </y:ArcEdge>
+      </data>
+    </edge>
+    <edge id="e16" source="n2" target="n9">
+      <data key="d9"/>
+      <data key="d10">
+        <y:ArcEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="501.5045166015625" y="122.32221221923828"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="80.01953125" x="178.43483935516832" y="-43.854431845461534">BOOM_BACK<y:LabelModel>
+              <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartEdgeLabelModelParameter angle="0.0" distance="30.0" distanceToCenter="true" position="right" ratio="0.19837782188573674" segment="-1"/>
+            </y:ModelParameter>
+          </y:EdgeLabel>
+          <y:Arc height="-22.465648651123047" ratio="-0.19112728536128998" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>

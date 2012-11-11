@@ -7,11 +7,11 @@ volatile enum search_states_t g_current_state = ST_INIT;
 enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
-#define BASE_DUTY_CYCLE 100
-#define SPIN_DUTY_CYCLE 40
+#define BASE_DUTY_CYCLE 200
+#define SPIN_DUTY_CYCLE 60
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
-#define REVERSE_TIMEOUT 1000
+#define REVERSE_TIMEOUT 500
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
 
@@ -55,6 +55,11 @@ void set_motors_forwards(void)
     g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE);
 }
 
+void set_motors_forwards_slow(void)
+{
+    g_motor_set_callback(1, BASE_DUTY_CYCLE * 2 / 3, 1, BASE_DUTY_CYCLE * 2 / 3);
+}
+
 void set_motors_forwards_left(void)
 {
     g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 4 / 5);
@@ -67,7 +72,7 @@ void set_motors_forwards_right(void)
 
 void set_motors_backwards(void)
 {
-    g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE - 30);
+    g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE - 80);
 }
 
 void set_motors_none(void)
@@ -134,9 +139,12 @@ void search_wall(enum state_signals_t signal, float p1, float p2)
                 transition(ST_REVERSE);
             break;
         case SIG_BOOM_FRONT:
-        case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_DRIFT_OFF_WALL);
+            break;
+        case SIG_BOOM_BACK:
+            if ((int)p1)
+                transition(ST_SPIN_OFF_WALL);
             break;
         case SIG_SEARCH_TIMEOUT:
             transition(ST_SEARCH_SCRAMBLE);
@@ -168,6 +176,7 @@ void drift_off_wall(enum state_signals_t signal, float p1, float p2)
         case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_SPIN_OFF_WALL);
+            break;
         default:
             break;
     }
@@ -212,9 +221,6 @@ void spin_off_wall(enum state_signals_t signal, float p1, float p2)
             if ((int)p1)
                 transition(ST_REVERSE);
             break;
-        case SIG_CAN_SPOTTED:
-            transition(ST_SEARCH_WALL);
-            break;
         case SIG_BOOM_FRONT:
             if (!(int)p1)
                 transition(ST_DRIFT_ON_WALL);
@@ -243,6 +249,11 @@ void push(enum state_signals_t signal, float p1, float p2)
     {
         case SIG_ENTRY:
             set_motors_forwards();
+            break;
+        case SIG_BOOM_FRONT:
+        case SIG_BOOM_BACK:
+            if ((int)p1)
+                set_motors_forwards_slow();
             break;
         case SIG_FRONT_LEFT:
             if ((int)p1)
