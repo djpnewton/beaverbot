@@ -12,14 +12,16 @@ enum search_mode_t
 enum search_states_t
 {
     ST_INIT,
-    ST_SEARCH,
-    ST_SUPER_SPIN,
+    ST_SEARCH_WALL,
+    ST_DRIFT_OFF_WALL,
+    ST_SPIN_OFF_WALL,
+    ST_DRIFT_ON_WALL,
     ST_PUSH,
     ST_PUSH_LEFT,
     ST_PUSH_RIGHT,
     ST_REVERSE,
-    ST_SPIN,
-    ST_SEARCH_SCRAMBLE
+    ST_SEARCH_SCRAMBLE,
+    ST_SUPER_SPIN,
 };
 
 enum state_signals_t
@@ -34,10 +36,11 @@ enum state_signals_t
     SIG_FRONT_RIGHT,
     SIG_BACK_LEFT,
     SIG_BACK_RIGHT,
+    SIG_BOOM_FRONT,
+    SIG_BOOM_BACK,
     SIG_SEARCH_TIMEOUT,
     SIG_SCRAMBLE_TIMEOUT,
     SIG_REVERSE_TIMEOUT,
-    SIG_SPIN_TIMEOUT
 };
 
 typedef void (*cam_search_motor_set_t)(uint8_t direction1, uint8_t value1, uint8_t direction2, uint8_t value2); 

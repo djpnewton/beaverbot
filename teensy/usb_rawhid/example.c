@@ -560,6 +560,12 @@ void step_program(struct kowhai_protocol_server_t* server)
                     case 3:
                         can_search_signal(SIG_BACK_RIGHT, teensy.sensors[i].triggered, 0);
                         break;
+                    case 4:
+                        can_search_signal(SIG_BOOM_FRONT, teensy.sensors[i].triggered, 0);
+                        break;
+                    case 5:
+                        can_search_signal(SIG_BOOM_BACK, teensy.sensors[i].triggered, 0);
+                        break;
                 }
             }
             break;
