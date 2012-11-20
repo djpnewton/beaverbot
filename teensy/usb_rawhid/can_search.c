@@ -11,15 +11,17 @@ cam_search_motor_set_t g_motor_set_callback;
 #define SPIN_DUTY_CYCLE 60
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
-#define REVERSE_TIMEOUT 500
+#define REVERSE_TIMEOUT 600
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
-#define DRIFTON_TIMEOUT 300
+#define DRIFTON_TIMEOUT 600
+#define DRIFTCENTER_TIMEOUT 100
 
 volatile int g_reverse_time = -1;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 volatile int g_drifton_time = -1;
+volatile int g_driftcenter_time = -1;
 
 #define DAMPER_SCALE 4.0f
 void set_motors_from_can_pos(float x, float y)
@@ -178,11 +180,43 @@ void drift_off_wall(enum state_signals_t signal, float p1, float p2)
             break;
         case SIG_BOOM_FRONT:
             if (!(int)p1)
-                transition(ST_DRIFT_ON_WALL);
+                transition(ST_DRIFT_TO_CENTER);
             break;
         case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_SPIN_OFF_WALL);
+            break;
+        default:
+            break;
+    }
+}
+
+void drift_to_center(enum state_signals_t signal, float p1, float p2)
+{
+     switch (signal)
+    {
+        case SIG_ENTRY:
+            g_driftcenter_time = 0;
+            set_motors_forwards_right();
+            break;
+        case SIG_CAN_SPOTTED:
+            transition(ST_SEARCH_WALL);
+            break;
+        case SIG_FRONT_LEFT:
+        case SIG_FRONT_RIGHT:
+            if ((int)p1)
+                transition(ST_REVERSE);
+            break;
+        case SIG_BOOM_FRONT:
+            if ((int)p1)
+                transition(ST_DRIFT_OFF_WALL);
+            break;
+        case SIG_BOOM_BACK:
+            if ((int)p1)
+                transition(ST_SPIN_OFF_WALL);
+            break;
+        case SIG_DRIFT_CENTER_TIMEOUT:
+            transition(ST_DRIFT_ON_WALL);
             break;
         default:
             break;
@@ -206,12 +240,13 @@ void drift_on_wall(enum state_signals_t signal, float p1, float p2)
                 transition(ST_REVERSE);
             break;
         case SIG_BOOM_FRONT:
-            if ((int)p1)
-                transition(ST_DRIFT_OFF_WALL);
+            if (!(int)p1)
+                transition(ST_DRIFT_ON_WALL);
             break;
         case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_SPIN_OFF_WALL);
+            break;
         case SIG_DRIFT_ON_TIMEOUT:
             transition(ST_DRIFT_ON_WALL_HARD);
             break;
@@ -242,6 +277,7 @@ void drift_on_wall_hard(enum state_signals_t signal, float p1, float p2)
         case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_SPIN_OFF_WALL);
+            break;
         default:
             break;
     }
@@ -261,7 +297,12 @@ void spin_off_wall(enum state_signals_t signal, float p1, float p2)
             break;
         case SIG_BOOM_FRONT:
             if (!(int)p1)
-                transition(ST_DRIFT_ON_WALL);
+                transition(ST_DRIFT_TO_CENTER);
+            break;
+        case SIG_BOOM_BACK:
+            if (!(int)p1)
+                set_motors_forwards_right();
+            break;
         default:
             break;
     }
@@ -413,6 +454,9 @@ void can_search_signal(enum state_signals_t signal, float p1, float p2)
         case ST_DRIFT_OFF_WALL:
             drift_off_wall(signal, p1, p2);
             return;
+        case ST_DRIFT_TO_CENTER:
+            drift_to_center(signal, p1, p2);
+            return;
         case ST_SPIN_OFF_WALL:
             spin_off_wall(signal, p1, p2);
             return;
@@ -479,6 +523,15 @@ void can_search_tick(void)
         {
             can_search_signal(SIG_DRIFT_ON_TIMEOUT, 0, 0);
             g_drifton_time = -1;
+        }
+    }
+    if (g_driftcenter_time >= 0)
+    {
+        g_driftcenter_time++;
+        if (g_driftcenter_time > DRIFTCENTER_TIMEOUT)
+        {
+            can_search_signal(SIG_DRIFT_CENTER_TIMEOUT, 0, 0);
+            g_driftcenter_time = -1;
         }
     }
 }
