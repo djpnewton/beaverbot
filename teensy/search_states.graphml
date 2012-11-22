@@ -558,6 +558,26 @@ FRONT_RIGHT<y:LabelModel>
         </y:ArcEdge>
       </data>
     </edge>
+    <edge id="e24" source="n11" target="n2">
+      <data key="d9"/>
+      <data key="d10">
+        <y:ArcEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="290.9675598144531" y="127.02752685546875"/>
+          </y:Path>
+          <y:LineStyle color="#000000" type="line" width="1.0"/>
+          <y:Arrows source="none" target="standard"/>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="165.34375" x="-223.18115234375" y="-18.58001708984378">DRIFT_ON_HARD_TIMEOUT<y:LabelModel>
+              <y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartEdgeLabelModelParameter angle="0.0" distance="30.0" distanceToCenter="true" position="center" ratio="1.0" segment="0"/>
+            </y:ModelParameter>
+          </y:EdgeLabel>
+          <y:Arc height="-16.097736358642578" ratio="-0.1645747870206833" type="fixedRatio"/>
+        </y:ArcEdge>
+      </data>
+    </edge>
   </graph>
   <data key="d0">
     <y:Resources/>

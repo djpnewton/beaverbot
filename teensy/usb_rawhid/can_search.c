@@ -4,6 +4,7 @@
 #include <util/delay.h>
 
 volatile enum search_states_t g_current_state = ST_INIT;
+volatile int g_current_boom_back = 0;
 enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
@@ -14,31 +15,33 @@ cam_search_motor_set_t g_motor_set_callback;
 #define REVERSE_TIMEOUT 600
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
-#define DRIFTON_TIMEOUT 600
-#define DRIFTCENTER_TIMEOUT 100
+#define DRIFTON_TIMEOUT 400
+#define DRIFTONHARD_TIMEOUT 1500
+#define DRIFTCENTER_TIMEOUT 50
 
 volatile int g_reverse_time = -1;
 volatile int g_search_time = -1;
 volatile int g_scramble_time = -1;
 volatile int g_drifton_time = -1;
+volatile int g_driftonhard_time = -1;
 volatile int g_driftcenter_time = -1;
 
 #define DAMPER_SCALE 4.0f
-void set_motors_from_can_pos(float x, float y)
+void set_motors_from_can_pos(float x, float y, int base_duty_cycle)
 {
-    uint8_t value1 = BASE_DUTY_CYCLE;
-    uint8_t value2 = BASE_DUTY_CYCLE;
+    uint8_t value1 = base_duty_cycle;
+    uint8_t value2 = base_duty_cycle;
     uint8_t diff;
     if (x < 0.5f)
     {
-        value2 = (uint8_t)(x / 0.5f * BASE_DUTY_CYCLE);
-        diff = BASE_DUTY_CYCLE - value2;
+        value2 = (uint8_t)(x / 0.5f * base_duty_cycle);
+        diff = base_duty_cycle - value2;
         value2 += (uint8_t)(diff * (DAMPER_SCALE - 1) / DAMPER_SCALE);
     }
     if (x > 0.5f)
     {
-        value1 = (uint8_t)((x - 0.5f) / 0.5f * BASE_DUTY_CYCLE);
-        diff = BASE_DUTY_CYCLE - value1;
+        value1 = (uint8_t)((x - 0.5f) / 0.5f * base_duty_cycle);
+        diff = base_duty_cycle - value1;
         value1 += (uint8_t)(diff * (DAMPER_SCALE - 1) / DAMPER_SCALE);
     }
     g_motor_set_callback(1, value1, 1, value2);
@@ -64,9 +67,9 @@ void set_motors_forwards_slow(void)
     g_motor_set_callback(1, BASE_DUTY_CYCLE * 2 / 3, 1, BASE_DUTY_CYCLE * 2 / 3);
 }
 
-void set_motors_forwards_left(void)
+void set_motors_forwards_left_hardish(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 4 / 5);
+    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 5 / 7);
 }
 
 void set_motors_forwards_left_hard(void)
@@ -138,7 +141,10 @@ void search_wall(enum state_signals_t signal, float p1, float p2)
             }
             else
             {
-                set_motors_from_can_pos(p1, p2);
+                if (!g_current_boom_back)
+                    set_motors_from_can_pos(p1, p2, BASE_DUTY_CYCLE);
+                else
+                    set_motors_from_can_pos(p1, p2, BASE_DUTY_CYCLE / 2);
                 g_search_time = 0;
             }
             break;
@@ -229,7 +235,7 @@ void drift_on_wall(enum state_signals_t signal, float p1, float p2)
     {
         case SIG_ENTRY:
             g_drifton_time = 0;
-            set_motors_forwards_left();
+            set_motors_forwards_left_hardish();
             break;
         case SIG_CAN_SPOTTED:
             transition(ST_SEARCH_WALL);
@@ -240,8 +246,8 @@ void drift_on_wall(enum state_signals_t signal, float p1, float p2)
                 transition(ST_REVERSE);
             break;
         case SIG_BOOM_FRONT:
-            if (!(int)p1)
-                transition(ST_DRIFT_ON_WALL);
+            if ((int)p1)
+                transition(ST_DRIFT_OFF_WALL);
             break;
         case SIG_BOOM_BACK:
             if ((int)p1)
@@ -260,6 +266,7 @@ void drift_on_wall_hard(enum state_signals_t signal, float p1, float p2)
      switch (signal)
     {
         case SIG_ENTRY:
+            g_driftonhard_time = 0;
             set_motors_forwards_left_hard();
             break;
         case SIG_CAN_SPOTTED:
@@ -277,6 +284,9 @@ void drift_on_wall_hard(enum state_signals_t signal, float p1, float p2)
         case SIG_BOOM_BACK:
             if ((int)p1)
                 transition(ST_SPIN_OFF_WALL);
+            break;
+        case SIG_DRIFT_ON_HARD_TIMEOUT:
+            transition(ST_SEARCH_WALL);
             break;
         default:
             break;
@@ -444,6 +454,9 @@ void can_search_init(enum search_mode_t mode, cam_search_motor_set_t motor_set_c
 
 void can_search_signal(enum state_signals_t signal, float p1, float p2)
 {
+    if (signal == SIG_BOOM_BACK)
+        g_current_boom_back = (int)p1;
+
     switch (g_current_state)
     {
         case ST_INIT:
@@ -523,6 +536,15 @@ void can_search_tick(void)
         {
             can_search_signal(SIG_DRIFT_ON_TIMEOUT, 0, 0);
             g_drifton_time = -1;
+        }
+    }
+    if (g_driftonhard_time >= 0)
+    {
+        g_driftonhard_time++;
+        if (g_driftonhard_time > DRIFTONHARD_TIMEOUT)
+        {
+            can_search_signal(SIG_DRIFT_ON_HARD_TIMEOUT, 0, 0);
+            g_driftonhard_time = -1;
         }
     }
     if (g_driftcenter_time >= 0)
