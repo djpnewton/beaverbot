@@ -15,9 +15,9 @@ cam_search_motor_set_t g_motor_set_callback;
 #define REVERSE_TIMEOUT 600
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
-#define DRIFTON_TIMEOUT 400
+#define DRIFTON_TIMEOUT 500
 #define DRIFTONHARD_TIMEOUT 1500
-#define DRIFTCENTER_TIMEOUT 50
+#define DRIFTCENTER_TIMEOUT 100
 
 volatile int g_reverse_time = -1;
 volatile int g_search_time = -1;
@@ -74,7 +74,7 @@ void set_motors_forwards_left_hardish(void)
 
 void set_motors_forwards_left_hard(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 4 / 7);
+    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 5 / 9);
 }
 
 void set_motors_forwards_right(void)
