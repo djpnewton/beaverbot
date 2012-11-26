@@ -5,10 +5,10 @@
 
 volatile enum search_states_t g_current_state = ST_INIT;
 volatile int g_current_boom_back = 0;
-enum search_mode_t g_search_mode = SM_PUSH;
 cam_search_motor_set_t g_motor_set_callback;
 
 #define BASE_DUTY_CYCLE 200
+#define FAST_DUTY_CYCLE 250
 #define SPIN_DUTY_CYCLE 60
 #define SPIN_SUPER_DUTY_CYCLE 250
 #define SPIN_SUPER_TIMEOUT 120
@@ -16,8 +16,12 @@ cam_search_motor_set_t g_motor_set_callback;
 #define SEARCH_TIMEOUT 3000
 #define SCRAMBLE_TIMEOUT 500
 #define DRIFTON_TIMEOUT 500
+#define FAST_DRIFTON_TIMEOUT 350
 #define DRIFTONHARD_TIMEOUT 1500
 #define DRIFTCENTER_TIMEOUT 100
+
+int g_base_duty_cycle = BASE_DUTY_CYCLE;
+int g_drifton_timeout = DRIFTON_TIMEOUT;
 
 volatile int g_reverse_time = -1;
 volatile int g_search_time = -1;
@@ -49,42 +53,42 @@ void set_motors_from_can_pos(float x, float y, int base_duty_cycle)
 
 void set_left_motor(void)
 {
-    g_motor_set_callback(0, 0, 1, BASE_DUTY_CYCLE);
+    g_motor_set_callback(0, 0, 1, g_base_duty_cycle);
 }
 
 void set_right_motor(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 0, 0);
+    g_motor_set_callback(1, g_base_duty_cycle, 0, 0);
 }
 
 void set_motors_forwards(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE);
+    g_motor_set_callback(1, g_base_duty_cycle, 1, g_base_duty_cycle);
 }
 
 void set_motors_forwards_slow(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE * 2 / 3, 1, BASE_DUTY_CYCLE * 2 / 3);
+    g_motor_set_callback(1, g_base_duty_cycle * 2 / 3, 1, g_base_duty_cycle * 2 / 3);
 }
 
 void set_motors_forwards_left_hardish(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 5 / 7);
+    g_motor_set_callback(1, g_base_duty_cycle, 1, g_base_duty_cycle * 5 / 7);
 }
 
 void set_motors_forwards_left_hard(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE, 1, BASE_DUTY_CYCLE * 5 / 9);
+    g_motor_set_callback(1, g_base_duty_cycle, 1, g_base_duty_cycle * 5 / 9);
 }
 
 void set_motors_forwards_right(void)
 {
-    g_motor_set_callback(1, BASE_DUTY_CYCLE * 4 / 5, 1, BASE_DUTY_CYCLE);
+    g_motor_set_callback(1, g_base_duty_cycle * 4 / 5, 1, g_base_duty_cycle);
 }
 
 void set_motors_backwards(void)
 {
-    g_motor_set_callback(2, BASE_DUTY_CYCLE, 2, BASE_DUTY_CYCLE - 80);
+    g_motor_set_callback(2, g_base_duty_cycle, 2, g_base_duty_cycle - 80);
 }
 
 void set_motors_none(void)
@@ -132,19 +136,16 @@ void search_wall(enum state_signals_t signal, float p1, float p2)
             g_search_time = -1;
             break;
         case SIG_CAN_SPOTTED:
-            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.75)
+            if (p1 > 0.35f && p1 < 0.65f && p2 > 0.65)
             {
-                if (g_search_mode == SM_PUSH)
-                    transition(ST_PUSH);
-                else
-                    transition(ST_SUPER_SPIN);
+                transition(ST_PUSH);
             }
             else
             {
                 if (!g_current_boom_back)
-                    set_motors_from_can_pos(p1, p2, BASE_DUTY_CYCLE);
+                    set_motors_from_can_pos(p1, p2, g_base_duty_cycle);
                 else
-                    set_motors_from_can_pos(p1, p2, BASE_DUTY_CYCLE / 2);
+                    set_motors_from_can_pos(p1, p2, g_base_duty_cycle / 2);
                 g_search_time = 0;
             }
             break;
@@ -445,11 +446,17 @@ void can_search_init(enum search_mode_t mode, cam_search_motor_set_t motor_set_c
 {
     g_motor_set_callback = motor_set_callback;
     g_current_state = ST_INIT;
-    g_search_mode = mode;
     if (mode == SM_PUSH)
-        transition(ST_PUSH);
+    {
+        g_base_duty_cycle = BASE_DUTY_CYCLE;
+        g_drifton_timeout = DRIFTON_TIMEOUT;
+    }
     else
-        transition(ST_SEARCH_WALL);
+    {
+        g_base_duty_cycle = FAST_DUTY_CYCLE;
+        g_drifton_timeout = FAST_DRIFTON_TIMEOUT;
+    }
+    transition(ST_PUSH);
 }
 
 void can_search_signal(enum state_signals_t signal, float p1, float p2)
@@ -532,7 +539,7 @@ void can_search_tick(void)
     if (g_drifton_time >= 0)
     {
         g_drifton_time++;
-        if (g_drifton_time > DRIFTON_TIMEOUT)
+        if (g_drifton_time > g_drifton_timeout)
         {
             can_search_signal(SIG_DRIFT_ON_TIMEOUT, 0, 0);
             g_drifton_time = -1;
